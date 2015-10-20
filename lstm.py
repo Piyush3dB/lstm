@@ -45,6 +45,9 @@ class LstmParam:
         self.bo_diff = np.zeros(mem_cell_ct) 
 
     def apply_diff(self, lr = 1):
+        """
+        Weight update
+        """
         self.wg -= lr * self.wg_diff
         self.wi -= lr * self.wi_diff
         self.wf -= lr * self.wf_diff
@@ -91,13 +94,13 @@ class LstmCell:
     A single LSTM cell composed of State and Weight parameters
     """
 
-    def __init__(self, params):
+    def __init__(self, PARAMS):
 
         print "__init__ LstmCell"
 
         # store reference to parameters and to activations
-        self.state = CellState(params.mem_cell_ct, params.x_dim)
-        self.param = params
+        self.state = CellState(PARAMS.mem_cell_ct, PARAMS.x_dim)
+        self.param = PARAMS
 
         # non-recurrent input to node
         self.x = None
@@ -116,16 +119,14 @@ class LstmCell:
 
         # concatenate x(t) and h(t-1)
         xc      = np.hstack((x,  h_prev))
-        
-        # Save data
-        self.x  = x
         self.xc = xc
         
+        # Apply cell equations using new weights and inputs
         self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)  # cell input
-        self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)  # input gate
-        self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)  # forget gate
-        self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)  # output gate
-        self.state.s = self.state.g * self.state.i + s_prev * self.state.f # cell state
+        self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)  #    input gate
+        self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)  #    forget gate
+        self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)  #    output gate
+        self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
     
