@@ -57,8 +57,8 @@ def example_0():
         for ind in range(nOut):
 
             # Input 50 random numbers to LSTM
-            xRandIn = input_val_arr[ind]
-            LSTM.x_list_add(xRandIn)
+            x = input_val_arr[ind]
+            LSTM.x_list_add(x)
             # Get state which is the prediction
             state = LSTM.CELL[ind].state.h[0]
 

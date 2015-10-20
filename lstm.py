@@ -89,11 +89,12 @@ class LstmCell:
     A single LSTM cell composed of State and Weight parameters
     """
 
-    def __init__(self, lstm_param):
+    def __init__(self, params):
+
         # store reference to parameters and to activations
-        #self.state = lstm_state
-        self.state = CellState(lstm_param.mem_cell_ct, lstm_param.x_dim)
-        self.param = lstm_param
+        self.state = CellState(params.mem_cell_ct, params.x_dim)
+        self.param = params
+
         # non-recurrent input to node
         self.x = None
         # non-recurrent input concatenated with recurrent input
@@ -164,7 +165,10 @@ class LstmNetwork():
 
         # Init parameters structure
         self.lstm_param = lstm_param
+
+        # Init empty network
         self.CELL = []
+
         # input sequence
         self.x_list = []
 
@@ -204,7 +208,12 @@ class LstmNetwork():
         self.x_list = []
 
     def x_list_add(self, x):
+        """
+        Apply input to LSTM
+        """
+
         self.x_list.append(x)
+        
         if len(self.x_list) > len(self.CELL):
             # need to add new lstm node, create new state mem
             lstm_node  = LstmCell(self.lstm_param)
