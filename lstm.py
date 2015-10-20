@@ -163,7 +163,7 @@ class LstmNetwork():
 
         # Init parameters structure
         self.lstm_param = lstm_param
-        self.lstm_node_list = []
+        self.NODE = []
         # input sequence
         self.x_list = []
 
@@ -179,22 +179,22 @@ class LstmNetwork():
         idx = len(self.x_list) - 1
 
         # first node only gets diffs from label ...
-        loss   = loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
-        diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
+        loss   = loss_layer.loss(self.NODE[idx].state.h, y_list[idx])
+        diff_h = loss_layer.bottom_diff(self.NODE[idx].state.h, y_list[idx])
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.lstm_param.mem_cell_ct)
-        self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
+        self.NODE[idx].top_diff_is(diff_h, diff_s)
         idx -= 1
 
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss   += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h  = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h += self.lstm_node_list[idx + 1].state.bottom_diff_h
-            diff_s  = self.lstm_node_list[idx + 1].state.bottom_diff_s
-            self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
+            loss   += loss_layer.loss(self.NODE[idx].state.h, y_list[idx])
+            diff_h  = loss_layer.bottom_diff(self.NODE[idx].state.h, y_list[idx])
+            diff_h += self.NODE[idx + 1].state.bottom_diff_h
+            diff_s  = self.NODE[idx + 1].state.bottom_diff_s
+            self.NODE[idx].top_diff_is(diff_h, diff_s)
             idx -= 1 
 
         return loss
@@ -204,19 +204,19 @@ class LstmNetwork():
 
     def x_list_add(self, x):
         self.x_list.append(x)
-        if len(self.x_list) > len(self.lstm_node_list):
+        if len(self.x_list) > len(self.NODE):
             # need to add new lstm node, create new state mem
             lstm_state = LstmState(self.lstm_param.mem_cell_ct, self.lstm_param.x_dim)
             lstm_node  = LstmNode(self.lstm_param, lstm_state)
-            self.lstm_node_list.append(lstm_node)
+            self.NODE.append(lstm_node)
 
         # get index of most recent x input
         idx = len(self.x_list) - 1
         if idx == 0:
             # no recurrent inputs yet
-            self.lstm_node_list[idx].bottom_data_is(x)
+            self.NODE[idx].bottom_data_is(x)
         else:
-            s_prev = self.lstm_node_list[idx - 1].state.s
-            h_prev = self.lstm_node_list[idx - 1].state.h
-            self.lstm_node_list[idx].bottom_data_is(x, s_prev, h_prev)
+            s_prev = self.NODE[idx - 1].state.s
+            h_prev = self.NODE[idx - 1].state.h
+            self.NODE[idx].bottom_data_is(x, s_prev, h_prev)
 

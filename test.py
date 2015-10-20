@@ -60,7 +60,7 @@ def example_0():
             xRandIn = input_val_arr[ind]
             LSTM.x_list_add(xRandIn)
             # Get state which is the prediction
-            state = LSTM.lstm_node_list[ind].state.h[0]
+            state = LSTM.NODE[ind].state.h[0]
 
             #print "  y_pred[%d] : %3.3f" % (ind, state)
             print "  Input %d rand.  Target = %1.3f. Output = %1.3f" % (x_dim, y_list[ind], state)
