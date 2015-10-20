@@ -23,11 +23,12 @@ def example_0():
     np.random.seed(3)
 
     ## parameters for input data dimension and lstm cell count 
-    #Number of iterations
-    N = 100;
+    #Number of iterations or epochs
+    nEpochs = 100;
     
     mem_cell_ct = 100
     
+    # Number of random input numbers for each output
     x_dim = 50
     
     concat_len = x_dim + mem_cell_ct
@@ -41,20 +42,24 @@ def example_0():
     
     ## Prepare target outputs
     y_list = [0.5, 0.2, 0.1, 0.5]
+    nOut   = len(y_list)
 
     # Input data
-    #np.shape(input_val_arr) = (4,50)
     input_val_arr = [np.random.random(x_dim) for _ in y_list]
+    #np.shape(input_val_arr) = (4,50)
 
     #pdb.set_trace()
+    
+    # Train and sample at the same time
+    for epoch in range(nEpochs):
 
-    for cur_iter in range(N):
-        print "Iteration (Epoch): %3d" % (cur_iter)
-        for ind in range(len(y_list)): # range(4)
+        print "Epoch: %3d" % (epoch)
+        
+        for ind in range(nOut):
 
             # Input 50 random numbers to LSTM
-            xIn = input_val_arr[ind]
-            LSTM.x_list_add(xIn)
+            xRandIn = input_val_arr[ind]
+            LSTM.x_list_add(xRandIn)
             # Get state which is the prediction
             state = LSTM.lstm_node_list[ind].state.h[0]
 
@@ -63,14 +68,16 @@ def example_0():
 
             #pdb.set_trace()
 
+        # Evaluate loss function
         loss = LSTM.y_list_is(y_list, ToyLossLayer)
         print "loss: %5.10f\n" % (loss)
+
+        # Apply weight update
         PARAMS.apply_diff(lr=0.1)
+
+        # Clear inouts to start afresh for next epoch
         LSTM.x_list_clear()
 
 if __name__ == "__main__":
     example_0()
 
-##
-##  print 'iter %d, loss: %f' % (n, smooth_loss)
-##
