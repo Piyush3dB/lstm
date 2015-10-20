@@ -104,20 +104,22 @@ class LstmCell:
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
-    def bottom_data_is(self, x, s_prev = None, h_prev = None):
+    def stepUp(self, x, s_prev = None, h_prev = None):
         """
-        Present data to the bottom of the Cell
+        Present data to the bottom of the Cell and compute the values as we
+          step 'upwards'.
+        Old name : bottom_data_is
         """
-
-        # if this is the first lstm node in the network
-        if s_prev == None: s_prev = np.zeros_like(self.state.s)
-        if h_prev == None: h_prev = np.zeros_like(self.state.h)
         # save data for use in backprop
         self.s_prev = s_prev
         self.h_prev = h_prev
 
         # concatenate x(t) and h(t-1)
-        xc = np.hstack((x,  h_prev))
+        xc      = np.hstack((x,  h_prev))
+        
+        # Save data
+        self.x  = x
+        self.xc = xc
         
         self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)  # cell input
         self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)  # input gate
@@ -126,8 +128,6 @@ class LstmCell:
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f # cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
-        self.x = x
-        self.xc = xc
     
     def top_diff_is(self, top_diff_h, top_diff_s):
         # notice that top_diff_s is carried along the constant error carousel
@@ -188,7 +188,7 @@ class LstmNetwork():
         # Total number of cells in network
         self.nCells = nOut
 
-    def y_list_is(self, y_list, loss_layer):
+    def sample(self, y_list, loss_layer):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -226,7 +226,7 @@ class LstmNetwork():
         """
         self.nUsedCells = 0
 
-    def x_list_add(self, x):
+    def input(self, x):
         """
         Apply input to network
         """
@@ -234,15 +234,17 @@ class LstmNetwork():
         # get index of current cell
         idx = self.nUsedCells
 
-        if self.nUsedCells == 0: # no recurrent inputs yet
+        if self.nUsedCells == 0: 
+            # no recurrent inputs yet
             s_prev = np.zeros_like(self.CELLS[idx].state.s)
             h_prev = np.zeros_like(self.CELLS[idx].state.h)
-        else: # use recurrent inputs
+        else: 
+            # use recurrent inputs
             s_prev = self.CELLS[idx - 1].state.s
             h_prev = self.CELLS[idx - 1].state.h
 
-        # Apply data to the current LSTM cell
-        self.CELLS[idx].bottom_data_is(x, s_prev, h_prev)
+        # Apply data to the current LSTM cell moving from bottom to top
+        self.CELLS[idx].stepUp(x, s_prev, h_prev)
 
         # Increment number of active cells in network
         self.nUsedCells += 1

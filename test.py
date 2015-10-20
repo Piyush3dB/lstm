@@ -62,7 +62,7 @@ def example_0():
             # Input 50 random numbers to LSTM
             x = input_val_arr[ind]
             #print x
-            LSTM.x_list_add(x)
+            LSTM.input(x)
             # Get state which is the prediction
             state = LSTM.CELLS[ind].state.h[0]
 
@@ -71,8 +71,8 @@ def example_0():
 
             #pdb.set_trace()
 
-        # Evaluate loss function
-        loss = LSTM.y_list_is(y_list, ToyLossLayer)
+        # Evaluate loss function and sample
+        loss = LSTM.sample(y_list, ToyLossLayer)
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
         # Apply weight update
