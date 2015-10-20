@@ -65,7 +65,7 @@ class LstmParam:
 
 
 
-class LstmState:
+class CellState:
     """
     State associated with an LSTM node
     """
@@ -84,15 +84,15 @@ class LstmState:
 
 
 
-class LstmNode:
+class LstmCell:
     """
-    A single LSTM node composed of State and Weight parameters
+    A single LSTM cell composed of State and Weight parameters
     """
 
     def __init__(self, lstm_param):
         # store reference to parameters and to activations
         #self.state = lstm_state
-        self.state = LstmState(lstm_param.mem_cell_ct, lstm_param.x_dim)
+        self.state = CellState(lstm_param.mem_cell_ct, lstm_param.x_dim)
         self.param = lstm_param
         # non-recurrent input to node
         self.x = None
@@ -207,7 +207,7 @@ class LstmNetwork():
         self.x_list.append(x)
         if len(self.x_list) > len(self.CELL):
             # need to add new lstm node, create new state mem
-            lstm_node  = LstmNode(self.lstm_param)
+            lstm_node  = LstmCell(self.lstm_param)
             self.CELL.append(lstm_node)
 
         # get index of most recent x input
