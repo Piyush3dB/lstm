@@ -115,13 +115,12 @@ class LstmCell:
         # concatenate x(t) and h(t-1)
         xc = np.hstack((x,  h_prev))
         
-        # input, input gate, forget gate, output gate, state, output
-        self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)
-        self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)
-        self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)
-        self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)
-        self.state.s = self.state.g * self.state.i + s_prev * self.state.f
-        self.state.h = self.state.s * self.state.o
+        self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)  # cell input
+        self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)  # input gate
+        self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)  # forget gate
+        self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)  # output gate
+        self.state.s = self.state.g * self.state.i + s_prev * self.state.f # cell state
+        self.state.h = self.state.s * self.state.o                         # cell output
 
         self.x = x
         self.xc = xc
