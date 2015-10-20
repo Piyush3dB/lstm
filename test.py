@@ -24,8 +24,9 @@ def example_0():
 
     ## parameters for input data dimension and lstm cell count 
     #Number of iterations or epochs
-    nEpochs = 100;
+    nEpochs = 50;
     
+
     mem_cell_ct = 100
     
     # Number of random input numbers for each output
@@ -41,7 +42,8 @@ def example_0():
     LSTM = LstmNetwork(PARAMS)
     
     ## Prepare target outputs
-    y_list = [0.5, 0.2, 0.1, 0.5]
+    #y_list = [0.5, 0.2, 0.1, 0.5]
+    y_list = [0.12345]
     nOut   = len(y_list)
 
     # Input data
@@ -58,6 +60,7 @@ def example_0():
 
             # Input 50 random numbers to LSTM
             x = input_val_arr[ind]
+            #print x
             LSTM.x_list_add(x)
             # Get state which is the prediction
             state = LSTM.CELL[ind].state.h[0]
@@ -86,5 +89,29 @@ if __name__ == "__main__":
 #   Input 50 rand.  Target = 0.100. Output = 0.125
 #   Input 50 rand.  Target = 0.500. Output = 0.494
 # loss: 0.0007028469
+
+
+
+# __init__ LstmParam
+# __init__ LstmNetwork
+# Epoch:   0
+# __init__ LstmCell
+# __init__ CellState
+#   Input 50 rand.  Target = 0.500. Output = -0.024
+
+# __init__ LstmCell
+# __init__ CellState
+#   Input 50 rand.  Target = 0.200. Output = -0.085
+
+# __init__ LstmCell
+# __init__ CellState
+#   Input 50 rand.  Target = 0.100. Output = -0.083
+
+# __init__ LstmCell
+# __init__ CellState
+#   Input 50 rand.  Target = 0.500. Output = -0.079
+
+# loss: 0.7246981600
+
 
 

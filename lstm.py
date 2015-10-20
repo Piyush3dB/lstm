@@ -20,6 +20,7 @@ class LstmParam:
     """
 
     def __init__(self, mem_cell_ct, x_dim):
+        print "__init__ LstmParam"
         self.mem_cell_ct = mem_cell_ct
         self.x_dim = x_dim
         concat_len = x_dim + mem_cell_ct
@@ -71,6 +72,7 @@ class CellState:
     """
 
     def __init__(self, mem_cell_ct, x_dim):
+        print "__init__ CellState"
         self.g = np.zeros(mem_cell_ct)
         self.i = np.zeros(mem_cell_ct)
         self.f = np.zeros(mem_cell_ct)
@@ -90,6 +92,8 @@ class LstmCell:
     """
 
     def __init__(self, params):
+
+        print "__init__ LstmCell"
 
         # store reference to parameters and to activations
         self.state = CellState(params.mem_cell_ct, params.x_dim)
@@ -162,6 +166,8 @@ class LstmCell:
 
 class LstmNetwork():
     def __init__(self, lstm_param):
+
+        print "__init__ LstmNetwork"
 
         # Init parameters structure
         self.lstm_param = lstm_param
