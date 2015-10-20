@@ -182,8 +182,11 @@ class LstmNetwork():
             newCell  = LstmCell(self.PARAMS)
             self.CELLS.append(newCell)
 
-        # input sequence
-        self.x_list = []
+        # Current number of used cells in network
+        self.nUsedCells = 0
+
+        # Total number of cells in network
+        self.nCells = nOut
 
     def y_list_is(self, y_list, loss_layer):
         """
@@ -193,8 +196,8 @@ class LstmNetwork():
         call self.PARAMS.apply_diff() 
         """
 
-        assert len(y_list) == len(self.x_list)
-        idx = len(self.x_list) - 1
+        assert len(y_list) == self.nUsedCells
+        idx = self.nUsedCells - 1
 
         # first node only gets diffs from label ...
         loss   = loss_layer.loss(self.CELLS[idx].state.h, y_list[idx])
@@ -218,24 +221,26 @@ class LstmNetwork():
         return loss
 
     def x_list_clear(self):
-        self.x_list = []
+        self.nUsedCells = 0
 
     def x_list_add(self, x):
         """
         Apply input to LSTM
         """
 
-        self.x_list.append(x)
 
 
         # get index of most recent x input
-        idx = len(self.x_list) - 1
+        idx = self.nUsedCells
 
-        if idx == 0: # no recurrent inputs yet
+        if self.nUsedCells == 0: # no recurrent inputs yet
             s_prev = np.zeros_like(self.CELLS[idx].state.s)
             h_prev = np.zeros_like(self.CELLS[idx].state.h)
-        else:
+        else: # use recurrent inputs
             s_prev = self.CELLS[idx - 1].state.s
             h_prev = self.CELLS[idx - 1].state.h
 
+        # Number of active cells in network
+        self.nUsedCells += 1
+        # Apply data to the current LSTM cell
         self.CELLS[idx].bottom_data_is(x, s_prev, h_prev)
