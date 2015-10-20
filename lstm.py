@@ -11,6 +11,10 @@ def rand_arr(a, b, *args):
     return np.random.rand(*args) * (b - a) + a
 
 class LstmParam:
+    """
+    All LSTM network parameters
+    """
+    
     def __init__(self, mem_cell_ct, x_dim):
         self.mem_cell_ct = mem_cell_ct
         self.x_dim = x_dim
