@@ -24,7 +24,8 @@ def example_0():
 
     ## parameters for input data dimension and lstm cell count 
     #Number of iterations or epochs
-    nEpochs = 3;
+    nEpochs = 100;
+    nEpochs = 100;
     
 
     mem_cell_ct = 100
@@ -38,13 +39,14 @@ def example_0():
     # Containg weights and derivatives of loss function wrt weights)
     PARAMS = LstmParam(mem_cell_ct, x_dim) 
     
-    # Initialise LSTM 
-    LSTM = LstmNetwork(PARAMS)
     
     ## Prepare target outputs
-    #y_list = [0.5, 0.2, 0.1, 0.5]
-    y_list = [0.12345]
+    y_list = [0.5, 0.2, 0.1, 0.5]
+    #y_list = [0.12345]
     nOut   = len(y_list)
+
+    # Initialise LSTM 
+    LSTM = LstmNetwork(PARAMS, nOut)
 
     # Input data
     input_val_arr = np.random.random([nOut, x_dim])

@@ -105,6 +105,10 @@ class LstmCell:
         self.xc = None
 
     def bottom_data_is(self, x, s_prev = None, h_prev = None):
+        """
+        Present data to the bottom of the Cell
+        """
+
         # if this is the first lstm node in the network
         if s_prev == None: s_prev = np.zeros_like(self.state.s)
         if h_prev == None: h_prev = np.zeros_like(self.state.h)
@@ -165,15 +169,20 @@ class LstmCell:
 
 
 class LstmNetwork():
-    def __init__(self, PARAMS):
+    def __init__(self, PARAMS, nOut):
 
         print "__init__ LstmNetwork"
 
         # Init parameters structure
         self.PARAMS = PARAMS
 
-        # Init empty network
+        # Create network of cells
         self.CELLS = []
+
+        for _ in range(nOut):
+            # need to add new lstm node, create new state mem
+            lstm_cell  = LstmCell(self.PARAMS)
+            self.CELLS.append(lstm_cell)
 
         # input sequence
         self.x_list = []
@@ -183,7 +192,7 @@ class LstmNetwork():
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
         Will *NOT* update parameters.  To update parameters,
-        call self.PARAMS.apply_diff()
+        call self.PARAMS.apply_diff() 
         """
 
         assert len(y_list) == len(self.x_list)
@@ -220,10 +229,7 @@ class LstmNetwork():
 
         self.x_list.append(x)
         
-        if len(self.x_list) > len(self.CELLS):
-            # need to add new lstm node, create new state mem
-            lstm_cell  = LstmCell(self.PARAMS)
-            self.CELLS.append(lstm_cell)
+
 
         # get index of most recent x input
         idx = len(self.x_list) - 1
