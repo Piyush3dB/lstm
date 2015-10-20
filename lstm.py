@@ -178,11 +178,9 @@ class LstmNetwork():
 
         # Create network of cells
         self.CELLS = []
-
         for _ in range(nOut):
-            # need to add new lstm node, create new state mem
-            lstm_cell  = LstmCell(self.PARAMS)
-            self.CELLS.append(lstm_cell)
+            newCell  = LstmCell(self.PARAMS)
+            self.CELLS.append(newCell)
 
         # input sequence
         self.x_list = []
@@ -228,16 +226,16 @@ class LstmNetwork():
         """
 
         self.x_list.append(x)
-        
 
 
         # get index of most recent x input
         idx = len(self.x_list) - 1
-        if idx == 0:
-            # no recurrent inputs yet
-            self.CELLS[idx].bottom_data_is(x)
+
+        if idx == 0: # no recurrent inputs yet
+            s_prev = np.zeros_like(self.CELLS[idx].state.s)
+            h_prev = np.zeros_like(self.CELLS[idx].state.h)
         else:
             s_prev = self.CELLS[idx - 1].state.s
             h_prev = self.CELLS[idx - 1].state.h
-            self.CELLS[idx].bottom_data_is(x, s_prev, h_prev)
 
+        self.CELLS[idx].bottom_data_is(x, s_prev, h_prev)

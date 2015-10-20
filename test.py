@@ -93,26 +93,3 @@ if __name__ == "__main__":
 
 
 
-# __init__ LstmParam
-# __init__ LstmNetwork
-# Epoch:   0
-# __init__ LstmCell
-# __init__ CellState
-#   Input 50 rand.  Target = 0.500. Output = -0.024
-
-# __init__ LstmCell
-# __init__ CellState
-#   Input 50 rand.  Target = 0.200. Output = -0.085
-
-# __init__ LstmCell
-# __init__ CellState
-#   Input 50 rand.  Target = 0.100. Output = -0.083
-
-# __init__ LstmCell
-# __init__ CellState
-#   Input 50 rand.  Target = 0.500. Output = -0.079
-
-# loss: 0.7246981600
-
-
-
