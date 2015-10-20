@@ -73,12 +73,12 @@ class CellState:
 
     def __init__(self, mem_cell_ct, x_dim):
         print "__init__ CellState"
-        self.g = np.zeros(mem_cell_ct)
-        self.i = np.zeros(mem_cell_ct)
-        self.f = np.zeros(mem_cell_ct)
-        self.o = np.zeros(mem_cell_ct)
-        self.s = np.zeros(mem_cell_ct)
-        self.h = np.zeros(mem_cell_ct)
+        self.g = np.zeros(mem_cell_ct) # cell input
+        self.i = np.zeros(mem_cell_ct) # input gate
+        self.f = np.zeros(mem_cell_ct) # forget gate
+        self.o = np.zeros(mem_cell_ct) # output gate
+        self.s = np.zeros(mem_cell_ct) # cell state
+        self.h = np.zeros(mem_cell_ct) # cell output
         self.bottom_diff_h = np.zeros_like(self.h)
         self.bottom_diff_s = np.zeros_like(self.s)
         self.bottom_diff_x = np.zeros(x_dim)
@@ -115,6 +115,7 @@ class LstmCell:
         # concatenate x(t) and h(t-1)
         xc = np.hstack((x,  h_prev))
         
+        # input, input gate, forget gate, output gate, state, output
         self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)
         self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)
         self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)
@@ -165,15 +166,15 @@ class LstmCell:
 
 
 class LstmNetwork():
-    def __init__(self, lstm_param):
+    def __init__(self, PARAMS):
 
         print "__init__ LstmNetwork"
 
         # Init parameters structure
-        self.lstm_param = lstm_param
+        self.PARAMS = PARAMS
 
         # Init empty network
-        self.CELL = []
+        self.CELLS = []
 
         # input sequence
         self.x_list = []
@@ -183,29 +184,29 @@ class LstmNetwork():
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
         Will *NOT* update parameters.  To update parameters,
-        call self.lstm_param.apply_diff()
+        call self.PARAMS.apply_diff()
         """
 
         assert len(y_list) == len(self.x_list)
         idx = len(self.x_list) - 1
 
         # first node only gets diffs from label ...
-        loss   = loss_layer.loss(self.CELL[idx].state.h, y_list[idx])
-        diff_h = loss_layer.bottom_diff(self.CELL[idx].state.h, y_list[idx])
+        loss   = loss_layer.loss(self.CELLS[idx].state.h, y_list[idx])
+        diff_h = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx])
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        diff_s = np.zeros(self.lstm_param.mem_cell_ct)
-        self.CELL[idx].top_diff_is(diff_h, diff_s)
+        diff_s = np.zeros(self.PARAMS.mem_cell_ct)
+        self.CELLS[idx].top_diff_is(diff_h, diff_s)
         idx -= 1
 
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss   += loss_layer.loss(self.CELL[idx].state.h, y_list[idx])
-            diff_h  = loss_layer.bottom_diff(self.CELL[idx].state.h, y_list[idx])
-            diff_h += self.CELL[idx + 1].state.bottom_diff_h
-            diff_s  = self.CELL[idx + 1].state.bottom_diff_s
-            self.CELL[idx].top_diff_is(diff_h, diff_s)
+            loss   += loss_layer.loss(self.CELLS[idx].state.h, y_list[idx])
+            diff_h  = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx])
+            diff_h += self.CELLS[idx + 1].state.bottom_diff_h
+            diff_s  = self.CELLS[idx + 1].state.bottom_diff_s
+            self.CELLS[idx].top_diff_is(diff_h, diff_s)
             idx -= 1 
 
         return loss
@@ -220,18 +221,18 @@ class LstmNetwork():
 
         self.x_list.append(x)
         
-        if len(self.x_list) > len(self.CELL):
+        if len(self.x_list) > len(self.CELLS):
             # need to add new lstm node, create new state mem
-            lstm_node  = LstmCell(self.lstm_param)
-            self.CELL.append(lstm_node)
+            lstm_cell  = LstmCell(self.PARAMS)
+            self.CELLS.append(lstm_cell)
 
         # get index of most recent x input
         idx = len(self.x_list) - 1
         if idx == 0:
             # no recurrent inputs yet
-            self.CELL[idx].bottom_data_is(x)
+            self.CELLS[idx].bottom_data_is(x)
         else:
-            s_prev = self.CELL[idx - 1].state.s
-            h_prev = self.CELL[idx - 1].state.h
-            self.CELL[idx].bottom_data_is(x, s_prev, h_prev)
+            s_prev = self.CELLS[idx - 1].state.s
+            h_prev = self.CELLS[idx - 1].state.h
+            self.CELLS[idx].bottom_data_is(x, s_prev, h_prev)
 

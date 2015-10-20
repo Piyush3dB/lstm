@@ -24,7 +24,7 @@ def example_0():
 
     ## parameters for input data dimension and lstm cell count 
     #Number of iterations or epochs
-    nEpochs = 50;
+    nEpochs = 3;
     
 
     mem_cell_ct = 100
@@ -54,7 +54,6 @@ def example_0():
     # Train and sample at the same time
     for epoch in range(nEpochs):
 
-        print "Epoch: %3d" % (epoch)
         
         for ind in range(nOut):
 
@@ -63,7 +62,7 @@ def example_0():
             #print x
             LSTM.x_list_add(x)
             # Get state which is the prediction
-            state = LSTM.CELL[ind].state.h[0]
+            state = LSTM.CELLS[ind].state.h[0]
 
             #print "  y_pred[%d] : %3.3f" % (ind, state)
             print "  Input %d rand.  Target = %1.3f. Output = %1.3f" % (x_dim, y_list[ind], state)
@@ -72,7 +71,7 @@ def example_0():
 
         # Evaluate loss function
         loss = LSTM.y_list_is(y_list, ToyLossLayer)
-        print "loss: %5.10f\n" % (loss)
+        print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
         # Apply weight update
         PARAMS.apply_diff(lr=0.1)
