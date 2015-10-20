@@ -1,7 +1,8 @@
 import random
-
 import numpy as np
 import math
+
+# See arXiv:1506.00019 for notation
 
 def sigmoid(x): 
     return 1. / (1 + np.exp(-x))
@@ -10,11 +11,14 @@ def sigmoid(x):
 def rand_arr(a, b, *args): 
     return np.random.rand(*args) * (b - a) + a
 
+
+
+
 class LstmParam:
     """
     All LSTM network parameters
     """
-    
+
     def __init__(self, mem_cell_ct, x_dim):
         self.mem_cell_ct = mem_cell_ct
         self.x_dim = x_dim
@@ -58,7 +62,14 @@ class LstmParam:
         self.bf_diff = np.zeros_like(self.bf) 
         self.bo_diff = np.zeros_like(self.bo) 
 
+
+
+
 class LstmState:
+    """
+    State associated with an LSTM node
+    """
+
     def __init__(self, mem_cell_ct, x_dim):
         self.g = np.zeros(mem_cell_ct)
         self.i = np.zeros(mem_cell_ct)
@@ -69,8 +80,15 @@ class LstmState:
         self.bottom_diff_h = np.zeros_like(self.h)
         self.bottom_diff_s = np.zeros_like(self.s)
         self.bottom_diff_x = np.zeros(x_dim)
-    
+
+
+
+
 class LstmNode:
+    """
+    A single LSTM node composed of State and Weight parameters
+    """
+
     def __init__(self, lstm_param, lstm_state):
         # store reference to parameters and to activations
         self.state = lstm_state
@@ -90,12 +108,14 @@ class LstmNode:
 
         # concatenate x(t) and h(t-1)
         xc = np.hstack((x,  h_prev))
+        
         self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)
         self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)
         self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)
         self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f
         self.state.h = self.state.s * self.state.o
+
         self.x = x
         self.xc = xc
     
@@ -135,8 +155,13 @@ class LstmNode:
         self.state.bottom_diff_x = dxc[:self.param.x_dim]
         self.state.bottom_diff_h = dxc[self.param.x_dim:]
 
+
+
+
 class LstmNetwork():
     def __init__(self, lstm_param):
+
+        # Init parameters structure
         self.lstm_param = lstm_param
         self.lstm_node_list = []
         # input sequence
@@ -149,11 +174,14 @@ class LstmNetwork():
         Will *NOT* update parameters.  To update parameters,
         call self.lstm_param.apply_diff()
         """
+
         assert len(y_list) == len(self.x_list)
         idx = len(self.x_list) - 1
+
         # first node only gets diffs from label ...
-        loss = loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
+        loss   = loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
         diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
+
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.lstm_param.mem_cell_ct)
         self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
@@ -162,10 +190,10 @@ class LstmNetwork():
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
-            diff_h = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
+            loss   += loss_layer.loss(self.lstm_node_list[idx].state.h, y_list[idx])
+            diff_h  = loss_layer.bottom_diff(self.lstm_node_list[idx].state.h, y_list[idx])
             diff_h += self.lstm_node_list[idx + 1].state.bottom_diff_h
-            diff_s = self.lstm_node_list[idx + 1].state.bottom_diff_s
+            diff_s  = self.lstm_node_list[idx + 1].state.bottom_diff_s
             self.lstm_node_list[idx].top_diff_is(diff_h, diff_s)
             idx -= 1 
 
@@ -179,7 +207,8 @@ class LstmNetwork():
         if len(self.x_list) > len(self.lstm_node_list):
             # need to add new lstm node, create new state mem
             lstm_state = LstmState(self.lstm_param.mem_cell_ct, self.lstm_param.x_dim)
-            self.lstm_node_list.append(LstmNode(self.lstm_param, lstm_state))
+            lstm_node  = LstmNode(self.lstm_param, lstm_state)
+            self.lstm_node_list.append(lstm_node)
 
         # get index of most recent x input
         idx = len(self.x_list) - 1

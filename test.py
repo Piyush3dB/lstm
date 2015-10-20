@@ -80,3 +80,11 @@ def example_0():
 if __name__ == "__main__":
     example_0()
 
+# Epoch:  99
+#   Input 50 rand.  Target = 0.500. Output = 0.496
+#   Input 50 rand.  Target = 0.200. Output = 0.198
+#   Input 50 rand.  Target = 0.100. Output = 0.125
+#   Input 50 rand.  Target = 0.500. Output = 0.494
+# loss: 0.0007028469
+
+
