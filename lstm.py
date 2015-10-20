@@ -220,17 +220,18 @@ class LstmNetwork():
 
         return loss
 
-    def x_list_clear(self):
+    def gotoStartCell(self):
+        """
+        Reset counter to go to first cell in network
+        """
         self.nUsedCells = 0
 
     def x_list_add(self, x):
         """
-        Apply input to LSTM
+        Apply input to network
         """
 
-
-
-        # get index of most recent x input
+        # get index of current cell
         idx = self.nUsedCells
 
         if self.nUsedCells == 0: # no recurrent inputs yet
@@ -240,7 +241,8 @@ class LstmNetwork():
             s_prev = self.CELLS[idx - 1].state.s
             h_prev = self.CELLS[idx - 1].state.h
 
-        # Number of active cells in network
-        self.nUsedCells += 1
         # Apply data to the current LSTM cell
         self.CELLS[idx].bottom_data_is(x, s_prev, h_prev)
+
+        # Increment number of active cells in network
+        self.nUsedCells += 1

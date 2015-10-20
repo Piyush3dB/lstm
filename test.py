@@ -78,8 +78,8 @@ def example_0():
         # Apply weight update
         PARAMS.apply_diff(lr=0.1)
 
-        # Clear inouts to start afresh for next epoch
-        LSTM.x_list_clear()
+        # Clear inputs to start afresh for next epoch
+        LSTM.gotoStartCell()
 
 if __name__ == "__main__":
     example_0()
