@@ -45,8 +45,7 @@ def example_0():
     nOut   = len(y_list)
 
     # Input data
-    input_val_arr = [np.random.random(x_dim) for _ in y_list]
-    #np.shape(input_val_arr) = (4,50)
+    input_val_arr = np.random.random([nOut, x_dim])
 
     #pdb.set_trace()
     
