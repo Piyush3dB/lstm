@@ -121,7 +121,7 @@ class LstmCell:
         xc      = np.hstack((x,  h_prev))
         self.xc = xc
         
-        # Apply cell equations using new weights and inputs
+        # Apply cell equations to new weights and inputs
         self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)  # cell input
         self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)  #    input gate
         self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)  #    forget gate
@@ -171,23 +171,26 @@ class LstmCell:
 
 class LstmNetwork():
     def __init__(self, PARAMS, nOut):
-
+        """
+        Initialise LSTM network 
+        """
         print "__init__ LstmNetwork"
+
+        # Total number of cells in network
+        self.nCells = nOut
 
         # Init parameters structure
         self.PARAMS = PARAMS
 
         # Create network of cells
         self.CELLS = []
-        for _ in range(nOut):
+        for _ in range(self.nCells):
             newCell  = LstmCell(self.PARAMS)
             self.CELLS.append(newCell)
 
         # Current number of used cells in network
         self.nUsedCells = 0
 
-        # Total number of cells in network
-        self.nCells = nOut
 
     def sample(self, y_list, loss_layer):
         """

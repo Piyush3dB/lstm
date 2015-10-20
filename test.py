@@ -65,6 +65,7 @@ def example_0():
             LSTM.input(x)
             # Get state which is the prediction
             state = LSTM.CELLS[ind].state.h[0]
+            #pdb.set_trace()
 
             #print "  y_pred[%d] : %3.3f" % (ind, state)
             print "  Input %d rand.  Target = %1.3f. Output = %1.3f" % (x_dim, y_list[ind], state)
