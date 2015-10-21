@@ -28,7 +28,8 @@ class LstmParam:
         self.mem_cell_ct = mem_cell_ct
         concat_len       = x_dim + mem_cell_ct
 
-        # weight matrices
+        # weight matrices describe the linear fransformation from 
+        # input space to output space.
         self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
         self.wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
@@ -80,6 +81,8 @@ class CellState:
 
     def __init__(self, mem_cell_ct, x_dim):
         print "__init__ CellState"
+
+        # N dimensional vectors
         self.g = np.zeros(mem_cell_ct) # cell input
         self.i = np.zeros(mem_cell_ct) # input gate
         self.f = np.zeros(mem_cell_ct) # forget gate
@@ -260,3 +263,7 @@ class LstmNetwork():
 
         # Increment number of active cells in network
         self.nUsedCells += 1
+
+        # Debug
+        #print ("h[0] = %d") % (self.CELLS[idx-1].state.h)
+        #print (self.CELLS[idx].state.h[0])
