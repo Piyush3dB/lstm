@@ -25,8 +25,6 @@ def example_0():
     ## parameters for input data dimension and lstm cell count 
     #Number of iterations or epochs
     nEpochs = 100;
-    nEpochs = 100;
-    
 
     mem_cell_ct = 100
     
@@ -61,10 +59,12 @@ def example_0():
 
             # Input 50 random numbers to LSTM
             x = input_val_arr[ind]
-            #print x
             LSTM.input(x)
+            #print x
+
             # Get state which is the prediction
             state = LSTM.CELLS[ind].state.h[0]
+            #print LSTM.CELLS[ind].state.h
             #pdb.set_trace()
 
             #print "  y_pred[%d] : %3.3f" % (ind, state)

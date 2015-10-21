@@ -1,6 +1,7 @@
 import random
 import numpy as np
 import math
+import pdb as pdb
 
 # See arXiv:1506.00019 for notation
 
@@ -20,10 +21,13 @@ class LstmParam:
     """
 
     def __init__(self, mem_cell_ct, x_dim):
+
         print "__init__ LstmParam"
+
+        self.x_dim       = x_dim
         self.mem_cell_ct = mem_cell_ct
-        self.x_dim = x_dim
-        concat_len = x_dim + mem_cell_ct
+        concat_len       = x_dim + mem_cell_ct
+
         # weight matrices
         self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
@@ -107,7 +111,7 @@ class LstmCell:
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
-    def stepUp(self, x, s_prev = None, h_prev = None):
+    def step(self, x, s_prev = None, h_prev = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           step 'upwards'.
@@ -128,6 +132,8 @@ class LstmCell:
         self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)  #    output gate
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
         self.state.h = self.state.s * self.state.o                         # cell output
+
+        #pdb.set_trace()
 
     
     def top_diff_is(self, top_diff_h, top_diff_s):
@@ -248,7 +254,9 @@ class LstmNetwork():
             h_prev = self.CELLS[idx - 1].state.h
 
         # Apply data to the current LSTM cell moving from bottom to top
-        self.CELLS[idx].stepUp(x, s_prev, h_prev)
+
+        #pdb.set_trace()
+        self.CELLS[idx].step(x, s_prev, h_prev)
 
         # Increment number of active cells in network
         self.nUsedCells += 1
