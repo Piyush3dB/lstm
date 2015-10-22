@@ -34,11 +34,11 @@ def example_0():
     concat_len = x_dim + mem_cell_ct
 
     # Minimise cell index number
-    minCellLossIdx = 0;
+    LossIdx = 0;
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
-    PARAMS = LstmParam(mem_cell_ct, x_dim, minCellLossIdx) 
+    PARAMS = LstmParam(mem_cell_ct, x_dim) 
     
     
     ## Prepare target outputs
@@ -76,7 +76,7 @@ def example_0():
             #pdb.set_trace()
 
         # Evaluate loss function and sample
-        loss = LSTM.y_list_is(y_list, ToyLossLayer)
+        loss = LSTM.y_list_is(y_list, ToyLossLayer, LossIdx)
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
         # Apply weight update

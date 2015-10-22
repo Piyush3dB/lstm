@@ -20,15 +20,13 @@ class LstmParam:
     All LSTM network parameters
     """
 
-    def __init__(self, mem_cell_ct, x_dim, minCellLossIdx):
+    def __init__(self, mem_cell_ct, x_dim):
 
         print "__init__ LstmParam"
 
         self.x_dim       = x_dim
         self.mem_cell_ct = mem_cell_ct
         concat_len       = x_dim + mem_cell_ct
-
-        self.lossIdx = minCellLossIdx
 
         # weight matrices describe the linear fransformation from 
         # input space to output space.
@@ -203,7 +201,7 @@ class LstmNetwork():
         self.nUsedCells = 0
 
 
-    def y_list_is(self, y_list, LOSS_LAYER):
+    def y_list_is(self, y_list, LOSS_LAYER, lossIdx):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -218,7 +216,6 @@ class LstmNetwork():
         # first node only gets diffs from label ...
         pred    = self.CELLS[idx].state.h
         label   = y_list[idx],
-        lossIdx = self.CELLS[idx].param.lossIdx
 
         loss    = LOSS_LAYER.loss(        pred, label, lossIdx )
         diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
@@ -236,7 +233,6 @@ class LstmNetwork():
 
             pred    = self.CELLS[idx].state.h
             label   = y_list[idx],
-            lossIdx = self.CELLS[idx].param.lossIdx
 
 
             loss    += LOSS_LAYER.loss(        pred, label, lossIdx )
