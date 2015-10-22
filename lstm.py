@@ -20,13 +20,15 @@ class LstmParam:
     All LSTM network parameters
     """
 
-    def __init__(self, mem_cell_ct, x_dim):
+    def __init__(self, mem_cell_ct, x_dim, minCellLossIdx):
 
         print "__init__ LstmParam"
 
         self.x_dim       = x_dim
         self.mem_cell_ct = mem_cell_ct
         concat_len       = x_dim + mem_cell_ct
+
+        self.lossIdx = minCellLossIdx
 
         # weight matrices describe the linear fransformation from 
         # input space to output space.
@@ -201,7 +203,7 @@ class LstmNetwork():
         self.nUsedCells = 0
 
 
-    def sample(self, y_list, loss_layer):
+    def y_list_is(self, y_list, loss_layer):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -209,12 +211,13 @@ class LstmNetwork():
         call self.PARAMS.apply_diff() 
         """
 
+
         assert len(y_list) == self.nUsedCells
         idx = self.nUsedCells - 1
 
         # first node only gets diffs from label ...
-        loss   = loss_layer.loss(self.CELLS[idx].state.h, y_list[idx])
-        diff_h = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx])
+        loss   = loss_layer.loss(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
+        diff_h = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.PARAMS.mem_cell_ct)
@@ -224,8 +227,8 @@ class LstmNetwork():
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss   += loss_layer.loss(self.CELLS[idx].state.h, y_list[idx])
-            diff_h  = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx])
+            loss   += loss_layer.loss(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
+            diff_h  = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
             diff_h += self.CELLS[idx + 1].state.bottom_diff_h
             diff_s  = self.CELLS[idx + 1].state.bottom_diff_s
             self.CELLS[idx].top_diff_is(diff_h, diff_s)
