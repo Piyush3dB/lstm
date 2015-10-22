@@ -203,7 +203,7 @@ class LstmNetwork():
         self.nUsedCells = 0
 
 
-    def y_list_is(self, y_list, loss_layer):
+    def y_list_is(self, y_list, LOSS_LAYER):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -216,21 +216,36 @@ class LstmNetwork():
         idx = self.nUsedCells - 1
 
         # first node only gets diffs from label ...
-        loss   = loss_layer.loss(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
-        diff_h = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
+        pred    = self.CELLS[idx].state.h
+        label   = y_list[idx],
+        lossIdx = self.CELLS[idx].param.lossIdx
+
+        loss    = LOSS_LAYER.loss(        pred, label, lossIdx )
+        diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.PARAMS.mem_cell_ct)
+
         self.CELLS[idx].top_diff_is(diff_h, diff_s)
+
         idx -= 1
 
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
         while idx >= 0:
-            loss   += loss_layer.loss(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
-            diff_h  = loss_layer.bottom_diff(self.CELLS[idx].state.h, y_list[idx], self.CELLS[idx].param.lossIdx)
+
+            pred    = self.CELLS[idx].state.h
+            label   = y_list[idx],
+            lossIdx = self.CELLS[idx].param.lossIdx
+
+
+            loss    += LOSS_LAYER.loss(        pred, label, lossIdx )
+
+            diff_h   = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
             diff_h += self.CELLS[idx + 1].state.bottom_diff_h
+
             diff_s  = self.CELLS[idx + 1].state.bottom_diff_s
+
             self.CELLS[idx].top_diff_is(diff_h, diff_s)
             idx -= 1 
 
