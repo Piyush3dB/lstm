@@ -128,10 +128,10 @@ class LstmCell:
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
-    def step(self, x, s_prev = None, h_prev = None):
+    def fwdPass(self, x, s_prev = None, h_prev = None):
         """
         Present data to the bottom of the Cell and compute the values as we
-          step 'upwards'.
+          fwdPass 'upwards'.
         Old name : bottom_data_is
         """
         # save data for use in backprop
@@ -301,7 +301,7 @@ class LstmNetwork():
         # Apply data to the current LSTM cell moving from bottom to top
 
         #pdb.set_trace()
-        self.CELLS[idx].step(x, s_prev, h_prev)
+        self.CELLS[idx].fwdPass(x, s_prev, h_prev)
 
         # Increment number of active cells in network
         self.nUsedCells += 1
