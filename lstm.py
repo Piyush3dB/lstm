@@ -257,15 +257,15 @@ class LstmNetwork():
 
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
-        while idx >= 0:
+        while idx >= 0: # loop through every cell
 
             pred    = self.CELLS[idx].state.h
             label   = y_list[idx],
 
 
-            loss    += LOSS_LAYER.loss(        pred, label, lossIdx )
+            loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
 
-            diff_h   = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
+            diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
             diff_h += self.CELLS[idx + 1].state.bottom_diff_h
 
             diff_s  = self.CELLS[idx + 1].state.bottom_diff_s
