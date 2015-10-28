@@ -95,10 +95,25 @@ class LstmParam:
         Weight update
         """
         # [150, 100]
-        self.Wg -= lr * self.dWg
-        self.Wi -= lr * self.dWi
-        self.Wf -= lr * self.dWf
-        self.Wo -= lr * self.dWo
+
+
+        self.Wg  -= lr * self.dWg
+        self.Wgx -= lr * self.dWgx
+        self.Wgh -= lr * self.dWgh
+        
+        self.Wi  -= lr * self.dWi
+        self.Wix -= lr * self.dWix
+        self.Wih -= lr * self.dWih
+        
+        self.Wf  -= lr * self.dWf
+        self.Wfx -= lr * self.dWfx
+        self.Wfh -= lr * self.dWfh
+        
+        self.Wo  -= lr * self.dWo
+        self.Wox -= lr * self.dWox
+        self.Woh -= lr * self.dWoh
+
+
 
         # [100 , 1]
         self.Bg -= lr * self.dBg
@@ -107,13 +122,25 @@ class LstmParam:
         self.Bo -= lr * self.dBo
         
 
-        # reset diffs to zero
+        # reset derivatives to zero
 
         # [150, 100]
-        self.dWg = np.zeros_like(self.Wg)
-        self.dWi = np.zeros_like(self.Wi) 
-        self.dWf = np.zeros_like(self.Wf) 
-        self.dWo = np.zeros_like(self.Wo) 
+
+        self.dWg  = np.zeros_like(self.Wg)
+        self.dWgx = np.zeros_like(self.Wgx)
+        self.dWgh = np.zeros_like(self.Wgh)
+        
+        self.dWi  = np.zeros_like(self.Wi) 
+        self.dWix = np.zeros_like(self.Wix) 
+        self.dWih = np.zeros_like(self.Wih)
+        
+        self.dWf  = np.zeros_like(self.Wf) 
+        self.dWfx = np.zeros_like(self.Wfx) 
+        self.dWfh = np.zeros_like(self.Wfh)
+        
+        self.dWo  = np.zeros_like(self.Wo) 
+        self.dWox = np.zeros_like(self.Wox) 
+        self.dWoh = np.zeros_like(self.Woh)
 
         # [100, 1]
         self.dBg = np.zeros_like(self.Bg)
