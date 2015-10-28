@@ -49,10 +49,10 @@ class LstmParam:
 
 
 
-        self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
-        self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
-        self.wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
-        self.wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
+        self.Wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
+        self.Wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
+        self.Wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
+        self.Wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
 
         # bias terms
         self.bg = rand_arr(-0.1, 0.1, mem_cell_ct) 
@@ -66,41 +66,41 @@ class LstmParam:
         self.dWo = np.zeros((mem_cell_ct, concat_len)) 
 
 
-        self.bg_diff = np.zeros(mem_cell_ct) 
-        self.bi_diff = np.zeros(mem_cell_ct) 
-        self.bf_diff = np.zeros(mem_cell_ct) 
-        self.bo_diff = np.zeros(mem_cell_ct) 
+        self.dBg = np.zeros(mem_cell_ct) 
+        self.dBi = np.zeros(mem_cell_ct) 
+        self.dBf = np.zeros(mem_cell_ct) 
+        self.dBo = np.zeros(mem_cell_ct) 
 
     def apply_diff(self, lr = 1):
         """
         Weight update
         """
         # [150, 100]
-        self.wg -= lr * self.dWg
-        self.wi -= lr * self.dWi
-        self.wf -= lr * self.dWf
-        self.wo -= lr * self.dWo
+        self.Wg -= lr * self.dWg
+        self.Wi -= lr * self.dWi
+        self.Wf -= lr * self.dWf
+        self.Wo -= lr * self.dWo
 
         # [100 , 1]
-        self.bg -= lr * self.bg_diff
-        self.bi -= lr * self.bi_diff
-        self.bf -= lr * self.bf_diff
-        self.bo -= lr * self.bo_diff
+        self.bg -= lr * self.dBg
+        self.bi -= lr * self.dBi
+        self.bf -= lr * self.dBf
+        self.bo -= lr * self.dBo
         
 
         # reset diffs to zero
 
         # [150, 100]
-        self.dWg = np.zeros_like(self.wg)
-        self.dWi = np.zeros_like(self.wi) 
-        self.dWf = np.zeros_like(self.wf) 
-        self.dWo = np.zeros_like(self.wo) 
+        self.dWg = np.zeros_like(self.Wg)
+        self.dWi = np.zeros_like(self.Wi) 
+        self.dWf = np.zeros_like(self.Wf) 
+        self.dWo = np.zeros_like(self.Wo) 
 
         # [100, 1]
-        self.bg_diff = np.zeros_like(self.bg)
-        self.bi_diff = np.zeros_like(self.bi) 
-        self.bf_diff = np.zeros_like(self.bf) 
-        self.bo_diff = np.zeros_like(self.bo) 
+        self.dBg = np.zeros_like(self.bg)
+        self.dBi = np.zeros_like(self.bi) 
+        self.dBf = np.zeros_like(self.bf) 
+        self.dBo = np.zeros_like(self.bo) 
 
         #pdb.set_trace()
 
@@ -165,10 +165,10 @@ class LstmCell:
         
         # Apply cell equations to new weights and inputs
         # [100, 1] here
-        self.state.g = np.tanh(np.dot(self.param.wg, xc) + self.param.bg)  # cell input
-        self.state.i = sigmoid(np.dot(self.param.wi, xc) + self.param.bi)  #    input gate
-        self.state.f = sigmoid(np.dot(self.param.wf, xc) + self.param.bf)  #    forget gate
-        self.state.o = sigmoid(np.dot(self.param.wo, xc) + self.param.bo)  #    output gate
+        self.state.g = np.tanh(np.dot(self.param.Wg, xc) + self.param.bg)  # cell input
+        self.state.i = sigmoid(np.dot(self.param.Wi, xc) + self.param.bi)  #    input gate
+        self.state.f = sigmoid(np.dot(self.param.Wf, xc) + self.param.bf)  #    forget gate
+        self.state.o = sigmoid(np.dot(self.param.Wo, xc) + self.param.bo)  #    output gate
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
@@ -201,18 +201,18 @@ class LstmCell:
         self.param.dWg += np.outer(dg_input, self.xc)
 
         # All [nMemCells ,1] == [100,1] here
-        self.param.bi_diff += di_input
-        self.param.bf_diff += df_input       
-        self.param.bo_diff += do_input
-        self.param.bg_diff += dg_input       
+        self.param.dBi += di_input
+        self.param.dBf += df_input       
+        self.param.dBo += do_input
+        self.param.dBg += dg_input       
 
         # compute bottom diff
         # [150, 1]
         dxc = np.zeros_like(self.xc)
-        dxc += np.dot(self.param.wi.T, di_input)
-        dxc += np.dot(self.param.wf.T, df_input)
-        dxc += np.dot(self.param.wo.T, do_input)
-        dxc += np.dot(self.param.wg.T, dg_input)
+        dxc += np.dot(self.param.Wi.T, di_input)
+        dxc += np.dot(self.param.Wf.T, df_input)
+        dxc += np.dot(self.param.Wo.T, do_input)
+        dxc += np.dot(self.param.Wg.T, dg_input)
 
         # save bottom diffs
         # [100, 1]
