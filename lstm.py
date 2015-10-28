@@ -55,21 +55,24 @@ class LstmParam:
         self.Wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
 
         # bias terms
-        self.bg = rand_arr(-0.1, 0.1, mem_cell_ct) 
-        self.bi = rand_arr(-0.1, 0.1, mem_cell_ct) 
-        self.bf = rand_arr(-0.1, 0.1, mem_cell_ct) 
-        self.bo = rand_arr(-0.1, 0.1, mem_cell_ct) 
+        self.Bg = rand_arr(-0.1, 0.1, mem_cell_ct) 
+        self.Bi = rand_arr(-0.1, 0.1, mem_cell_ct) 
+        self.Bf = rand_arr(-0.1, 0.1, mem_cell_ct) 
+        self.Bo = rand_arr(-0.1, 0.1, mem_cell_ct) 
+
+        
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWg = np.zeros((mem_cell_ct, concat_len)) 
-        self.dWi = np.zeros((mem_cell_ct, concat_len)) 
-        self.dWf = np.zeros((mem_cell_ct, concat_len)) 
-        self.dWo = np.zeros((mem_cell_ct, concat_len)) 
+        self.dWg = np.zeros_like(self.Wg)
+        self.dWi = np.zeros_like(self.Wi) 
+        self.dWf = np.zeros_like(self.Wf) 
+        self.dWo = np.zeros_like(self.Wo) 
 
+        # [100, 1]
+        self.dBg = np.zeros_like(self.Bg)
+        self.dBi = np.zeros_like(self.Bi) 
+        self.dBf = np.zeros_like(self.Bf) 
+        self.dBo = np.zeros_like(self.Bo) 
 
-        self.dBg = np.zeros(mem_cell_ct) 
-        self.dBi = np.zeros(mem_cell_ct) 
-        self.dBf = np.zeros(mem_cell_ct) 
-        self.dBo = np.zeros(mem_cell_ct) 
 
     def apply_diff(self, lr = 1):
         """
@@ -82,10 +85,10 @@ class LstmParam:
         self.Wo -= lr * self.dWo
 
         # [100 , 1]
-        self.bg -= lr * self.dBg
-        self.bi -= lr * self.dBi
-        self.bf -= lr * self.dBf
-        self.bo -= lr * self.dBo
+        self.Bg -= lr * self.dBg
+        self.Bi -= lr * self.dBi
+        self.Bf -= lr * self.dBf
+        self.Bo -= lr * self.dBo
         
 
         # reset diffs to zero
@@ -97,10 +100,10 @@ class LstmParam:
         self.dWo = np.zeros_like(self.Wo) 
 
         # [100, 1]
-        self.dBg = np.zeros_like(self.bg)
-        self.dBi = np.zeros_like(self.bi) 
-        self.dBf = np.zeros_like(self.bf) 
-        self.dBo = np.zeros_like(self.bo) 
+        self.dBg = np.zeros_like(self.Bg)
+        self.dBi = np.zeros_like(self.Bi) 
+        self.dBf = np.zeros_like(self.Bf) 
+        self.dBo = np.zeros_like(self.Bo) 
 
         #pdb.set_trace()
 
@@ -165,10 +168,10 @@ class LstmCell:
         
         # Apply cell equations to new weights and inputs
         # [100, 1] here
-        self.state.g = np.tanh(np.dot(self.param.Wg, xc) + self.param.bg)  # cell input
-        self.state.i = sigmoid(np.dot(self.param.Wi, xc) + self.param.bi)  #    input gate
-        self.state.f = sigmoid(np.dot(self.param.Wf, xc) + self.param.bf)  #    forget gate
-        self.state.o = sigmoid(np.dot(self.param.Wo, xc) + self.param.bo)  #    output gate
+        self.state.g = np.tanh(np.dot(self.param.Wg, xc) + self.param.Bg)  # cell input
+        self.state.i = sigmoid(np.dot(self.param.Wi, xc) + self.param.Bi)  #    input gate
+        self.state.f = sigmoid(np.dot(self.param.Wf, xc) + self.param.Bf)  #    forget gate
+        self.state.o = sigmoid(np.dot(self.param.Wo, xc) + self.param.Bo)  #    output gate
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
