@@ -13,7 +13,6 @@ def sigmoid(x):
 
 # createst uniform random array w/ values in [a,b) and shape args
 def rand_arr(a, b, *args): 
-    np.random.seed(3)
     return np.random.rand(*args) * (b - a) + a
 
 
@@ -34,7 +33,6 @@ class LstmParam:
 
         # weight matrices describe the linear fransformation from 
         # input space to output space.
-
         self.Wgx = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
         self.Wgh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
 
@@ -48,9 +46,8 @@ class LstmParam:
         self.Woh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
 
 
-
         self.wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
-        self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
+        self.wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
 
@@ -59,7 +56,23 @@ class LstmParam:
         self.bi = rand_arr(-0.1, 0.1, mem_cell_ct) 
         self.bf = rand_arr(-0.1, 0.1, mem_cell_ct) 
         self.bo = rand_arr(-0.1, 0.1, mem_cell_ct) 
+
+
+
         # diffs (derivative of loss function w.r.t. all parameters)
+        self.dWgx = np.zeros((mem_cell_ct, x_dim      )) 
+        self.dwgh = np.zeros((mem_cell_ct, mem_cell_ct)) 
+
+        self.dWix = np.zeros((mem_cell_ct, x_dim      )) 
+        self.dwih = np.zeros((mem_cell_ct, mem_cell_ct)) 
+        
+        self.dWfx = np.zeros((mem_cell_ct, x_dim      )) 
+        self.dwfh = np.zeros((mem_cell_ct, mem_cell_ct)) 
+        
+        self.dWox = np.zeros((mem_cell_ct, x_dim      )) 
+        self.dwoh = np.zeros((mem_cell_ct, mem_cell_ct)) 
+        
+
         self.dWg = np.zeros((mem_cell_ct, concat_len)) 
         self.dWi = np.zeros((mem_cell_ct, concat_len)) 
         self.dWf = np.zeros((mem_cell_ct, concat_len)) 

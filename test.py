@@ -88,12 +88,12 @@ def example_0():
 if __name__ == "__main__":
     example_0()
 
-# Epoch:  99
-#   Input 50 rand.  Target = 0.500. Output = 0.496
-#   Input 50 rand.  Target = 0.200. Output = 0.198
-#   Input 50 rand.  Target = 0.100. Output = 0.125
-#   Input 50 rand.  Target = 0.500. Output = 0.494
-# loss: 0.0007028469
+#   Input 50 rand.  Target = 0.500. Output = 0.501. Delta = -0.001
+#   Input 50 rand.  Target = 0.200. Output = 0.200. Delta = 0.000
+#   Input 50 rand.  Target = 0.100. Output = 0.101. Delta = -0.001
+#   Input 50 rand.  Target = 0.500. Output = 0.499. Delta = 0.001
+# Epoch:  99. loss: 0.0000022563
+
 
 
 
