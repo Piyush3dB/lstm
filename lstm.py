@@ -193,7 +193,7 @@ class LstmCell:
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
-    def fwdPass(self, x, s_prev = None, h_prev = None):
+    def fwdPass(self, x, s_prev = None, h_1 = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           fwdPass 'upwards'.
@@ -202,19 +202,42 @@ class LstmCell:
         # save data for use in backprop
         # [100, 1]
         self.s_prev = s_prev
-        self.h_prev = h_prev
+        self.h_prev = h_1
 
         # concatenate x(t) and h(t-1)
         # [150 , 1]
-        xc      = np.hstack((x,  h_prev))
+        xc      = np.hstack((x,  h_1))
         self.xc = xc
         
         # Apply cell equations to new weights and inputs
         # [100, 1] here
-        self.state.g = np.tanh(np.dot(self.param.Wg, xc) + self.param.Bg)  # cell input
-        self.state.i = sigmoid(np.dot(self.param.Wi, xc) + self.param.Bi)  #    input gate
-        self.state.f = sigmoid(np.dot(self.param.Wf, xc) + self.param.Bf)  #    forget gate
-        self.state.o = sigmoid(np.dot(self.param.Wo, xc) + self.param.Bo)  #    output gate
+
+        DP = np.dot
+
+        Wg = self.param.Wg
+        Wi = self.param.Wi
+        Wf = self.param.Wf
+        Wo = self.param.Wo
+
+        Wgx = self.param.Wgx
+        Wgh = self.param.Wgh
+        Wix = self.param.Wix
+        Wih = self.param.Wih
+        Wfx = self.param.Wfx
+        Wfh = self.param.Wfh
+        Wox = self.param.Wox
+        Woh = self.param.Woh
+
+        Bg  = self.param.Bg
+        Bi  = self.param.Bi
+        Bf  = self.param.Bf
+        Bo  = self.param.Bo
+
+
+        self.state.g = np.tanh(DP(Wg, xc ) + Bg)  # cell input
+        self.state.i = sigmoid(DP(Wi, xc ) + Bi)  #    input gate
+        self.state.f = sigmoid(DP(Wf, xc ) + Bf)  #    forget gate
+        self.state.o = sigmoid(DP(Wo, xc ) + Bo)  #    output gate
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
