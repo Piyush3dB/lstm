@@ -32,18 +32,23 @@ class LstmParam:
         self.mem_cell_ct = mem_cell_ct
         concat_len       = x_dim + mem_cell_ct
 
-        # weight matrices describe the linear fransformation from 
+        ##
+        # Weight matrices describe the linear fransformation from 
         # input space to output space.
 
+        # Input weights
         self.Wgx = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
         self.Wgh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
 
+        # Input gate weights
         self.Wix = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
         self.Wih = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
 
+        # Forget gate weights
         self.Wfx = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
         self.Wfh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
 
+        # Output gate weights
         self.Wox = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
         self.Woh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
 
@@ -54,18 +59,29 @@ class LstmParam:
         self.Wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
         self.Wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
 
-        # bias terms
+        ## bias terms
         self.Bg = rand_arr(-0.1, 0.1, mem_cell_ct) 
         self.Bi = rand_arr(-0.1, 0.1, mem_cell_ct) 
         self.Bf = rand_arr(-0.1, 0.1, mem_cell_ct) 
         self.Bo = rand_arr(-0.1, 0.1, mem_cell_ct) 
 
-        
+
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWg = np.zeros_like(self.Wg)
-        self.dWi = np.zeros_like(self.Wi) 
-        self.dWf = np.zeros_like(self.Wf) 
-        self.dWo = np.zeros_like(self.Wo) 
+        self.dWg  = np.zeros_like(self.Wg)
+        self.dWgx = np.zeros_like(self.Wgx)
+        self.dWgh = np.zeros_like(self.Wgh)
+        
+        self.dWi  = np.zeros_like(self.Wi) 
+        self.dWix = np.zeros_like(self.Wix) 
+        self.dWih = np.zeros_like(self.Wih)
+        
+        self.dWf  = np.zeros_like(self.Wf) 
+        self.dWfx = np.zeros_like(self.Wfx) 
+        self.dWfh = np.zeros_like(self.Wfh)
+        
+        self.dWo  = np.zeros_like(self.Wo) 
+        self.dWox = np.zeros_like(self.Wox) 
+        self.dWoh = np.zeros_like(self.Woh)
 
         # [100, 1]
         self.dBg = np.zeros_like(self.Bg)
