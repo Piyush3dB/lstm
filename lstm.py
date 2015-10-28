@@ -234,10 +234,10 @@ class LstmCell:
         Bo  = self.param.Bo
 
 
-        self.state.g = np.tanh(DP(Wg, xc ) + Bg)  # cell input
-        self.state.i = sigmoid(DP(Wi, xc ) + Bi)  #    input gate
-        self.state.f = sigmoid(DP(Wf, xc ) + Bf)  #    forget gate
-        self.state.o = sigmoid(DP(Wo, xc ) + Bo)  #    output gate
+        self.state.g = np.tanh(DP( Wg, xc) + Bg)  # cell input
+        self.state.i = sigmoid(DP( Wi, xc) + Bi)  #    input gate
+        self.state.f = sigmoid(DP( Wf, xc) + Bf)  #    forget gate
+        self.state.o = sigmoid(DP( Wo, xc) + Bo)  #    output gate
         self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
