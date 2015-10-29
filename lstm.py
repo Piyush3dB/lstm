@@ -160,9 +160,10 @@ class CellState:
         self.s = np.zeros(nCells) # s - cell state
         self.h = np.zeros(nCells) # h - cell output
 
-        self.bottom_diff_h = np.zeros_like(self.h)
-        self.bottom_diff_s = np.zeros_like(self.s)
-        self.bottom_diff_x = np.zeros(xSize)
+        # Persistent state for derivatives
+        self.dh = np.zeros_like(self.h)
+        self.ds = np.zeros_like(self.s)
+        self.dx = np.zeros(xSize)
 
 
 
@@ -185,10 +186,12 @@ class LstmCell:
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
-    def fwdPass(self, x, s_prev = None, h_1 = None):
+        # States
+
+    def forwardPass(self, x, s_prev = None, h_1 = None):
         """
         Present data to the bottom of the Cell and compute the values as we
-          fwdPass 'upwards'.
+          forwardPass 'upwards'.
         Old name : bottom_data_is
         """
         # save data for use in backprop
@@ -237,12 +240,12 @@ class LstmCell:
         
 
     
-    def top_diff_is(self, top_diff_h, top_diff_s):
-        # notice that top_diff_s is carried along the constant error carousel
+    def top_diff_is(self, diff_h, diff_s):
+        # notice that diff_s is carried along the constant error carousel
 
         # All [nMemCells ,1] == [100,1] here
-        ds = self.state.o * top_diff_h + top_diff_s
-        do = self.state.s * top_diff_h
+        ds = self.state.o * diff_h + diff_s
+        do = self.state.s * diff_h
         di = self.state.g * ds
         dg = self.state.i * ds
         df = self.s_prev  * ds
@@ -253,7 +256,7 @@ class LstmCell:
         di_input = (1. - self.state.i) * self.state.i * di 
         df_input = (1. - self.state.f) * self.state.f * df 
         do_input = (1. - self.state.o) * self.state.o * do 
-        dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here?
+        dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here
 
         # diffs w.r.t. inputs
         # [100,150] here
@@ -278,13 +281,13 @@ class LstmCell:
 
         # save bottom diffs
         # [100, 1]
-        self.state.bottom_diff_s = ds * self.state.f
+        self.state.ds = ds * self.state.f
 
         # [50 , 1]
-        self.state.bottom_diff_x = dxc[:self.param.xSize]
+        self.state.dx = dxc[:self.param.xSize]
 
         # [100  1]
-        self.state.bottom_diff_h = dxc[self.param.xSize:]
+        self.state.dh = dxc[self.param.xSize:]
 
 
 class LstmNetwork():
@@ -346,9 +349,9 @@ class LstmNetwork():
             loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
 
             diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
-            diff_h += self.CELLS[idx + 1].state.bottom_diff_h
+            diff_h += self.CELLS[idx + 1].state.dh
 
-            diff_s  = self.CELLS[idx + 1].state.bottom_diff_s
+            diff_s  = self.CELLS[idx + 1].state.ds
 
             self.CELLS[idx].top_diff_is(diff_h, diff_s)
             idx -= 1 
@@ -361,7 +364,7 @@ class LstmNetwork():
         """
         self.nUsedCells = 0
 
-    def input(self, x):
+    def forwardPass(self, x):
         """
         Apply input to network
         """
@@ -381,7 +384,7 @@ class LstmNetwork():
         # Apply data to the current LSTM cell moving from bottom to top
 
         #pdb.set_trace()
-        self.CELLS[idx].fwdPass(x, s_prev, h_prev)
+        self.CELLS[idx].forwardPass(x, s_prev, h_prev)
 
         # Increment number of active cells in network
         self.nUsedCells += 1

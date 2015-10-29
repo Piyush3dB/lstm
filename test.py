@@ -61,7 +61,7 @@ def example_0():
 
             # Input 50 random numbers to LSTM
             x = input_val_arr[ind]
-            LSTM.input(x)
+            LSTM.forwardPass(x)
             #print x
 
             # Get state which is the prediction
