@@ -170,7 +170,8 @@ class CellState:
 
 class LstmCell:
     """
-    A single LSTM cell composed of State and Weight parameters
+    A single LSTM cell composed of State and Weight parameters.
+    Function methods define the forward and backward passes
     """
 
     def __init__(self, PARAMS):
@@ -240,7 +241,7 @@ class LstmCell:
         
 
     
-    def top_diff_is(self, diff_h, diff_s):
+    def backwardPass(self, diff_h, diff_s):
         # notice that diff_s is carried along the constant error carousel
 
         # All [nMemCells ,1] == [100,1] here
@@ -313,7 +314,7 @@ class LstmNetwork():
         self.nUsedCells = 0
 
 
-    def y_list_is(self, y_list, LOSS_LAYER, lossIdx):
+    def bptt(self, y_list, LOSS_LAYER, lossIdx):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -335,9 +336,21 @@ class LstmNetwork():
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.PARAMS.nCells)
 
-        self.CELLS[idx].top_diff_is(diff_h, diff_s)
+        self.CELLS[idx].backwardPass(diff_h, diff_s)
 
         idx -= 1
+        lidx = idx
+
+        while lidx >= 0: # loop through every cell
+
+            pred    = self.CELLS[lidx].state.h
+            label   = y_list[lidx],
+
+            loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
+
+            lidx -= 1 
+
+
 
         ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
         ### we also propagate error along constant error carousel using diff_s
@@ -346,14 +359,14 @@ class LstmNetwork():
             pred    = self.CELLS[idx].state.h
             label   = y_list[idx],
 
-            loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
+            #loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
 
             diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
             diff_h += self.CELLS[idx + 1].state.dh
 
             diff_s  = self.CELLS[idx + 1].state.ds
 
-            self.CELLS[idx].top_diff_is(diff_h, diff_s)
+            self.CELLS[idx].backwardPass(diff_h, diff_s)
             idx -= 1 
 
         return loss

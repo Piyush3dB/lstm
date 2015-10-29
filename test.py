@@ -75,7 +75,7 @@ def example_0():
             #pdb.set_trace()
 
         # Evaluate loss function and sample
-        loss = LSTM.y_list_is(y_list, ToyLossLayer, LossIdx)
+        loss = LSTM.bptt(y_list, ToyLossLayer, LossIdx)
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
         # Apply weight update
