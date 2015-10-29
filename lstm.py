@@ -12,7 +12,7 @@ def sigmoid(x):
     return 1. / (1 + np.exp(-x))
 
 # createst uniform random array w/ values in [a,b) and shape args
-def rand_arr(a, b, *args): 
+def randArr(a, b, *args): 
     np.random.seed(3)
     return np.random.rand(*args) * (b - a) + a
 
@@ -24,62 +24,62 @@ class LstmParam:
     All LSTM network parameters
     """
 
-    def __init__(self, mem_cell_ct, x_dim):
+    def __init__(self, nCells, xSize):
 
         print "__init__ LstmParam"
 
-        self.x_dim       = x_dim
-        self.mem_cell_ct = mem_cell_ct
-        concat_len       = x_dim + mem_cell_ct
+        self.xSize  = xSize
+        self.nCells = nCells
+        concat_len  = xSize + nCells
 
         ##
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
 
         # Input weights
-        self.Wgx = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
-        self.Wgh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
+        self.Wgx = randArr(-0.1, 0.1, nCells, xSize )
+        self.Wgh = randArr(-0.1, 0.1, nCells, nCells)
 
         # Input gate weights
-        self.Wix = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
-        self.Wih = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
+        self.Wix = randArr(-0.1, 0.1, nCells, xSize )
+        self.Wih = randArr(-0.1, 0.1, nCells, nCells)
 
         # Forget gate weights
-        self.Wfx = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
-        self.Wfh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
+        self.Wfx = randArr(-0.1, 0.1, nCells, xSize )
+        self.Wfh = randArr(-0.1, 0.1, nCells, nCells)
 
         # Output gate weights
-        self.Wox = rand_arr(-0.1, 0.1, mem_cell_ct, x_dim      )
-        self.Woh = rand_arr(-0.1, 0.1, mem_cell_ct, mem_cell_ct)
+        self.Wox = randArr(-0.1, 0.1, nCells, xSize )
+        self.Woh = randArr(-0.1, 0.1, nCells, nCells)
 
 
 
-        self.Wg = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
-        self.Wi = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len) 
-        self.Wf = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
-        self.Wo = rand_arr(-0.1, 0.1, mem_cell_ct, concat_len)
+        self.Wg = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wi = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wf = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wo = randArr(-0.1, 0.1, nCells, concat_len)
 
         ## bias terms
-        self.Bg = rand_arr(-0.1, 0.1, mem_cell_ct) 
-        self.Bi = rand_arr(-0.1, 0.1, mem_cell_ct) 
-        self.Bf = rand_arr(-0.1, 0.1, mem_cell_ct) 
-        self.Bo = rand_arr(-0.1, 0.1, mem_cell_ct) 
+        self.Bg = randArr(-0.1, 0.1, nCells)
+        self.Bi = randArr(-0.1, 0.1, nCells)
+        self.Bf = randArr(-0.1, 0.1, nCells)
+        self.Bo = randArr(-0.1, 0.1, nCells)
 
 
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWg  = np.zeros_like(self.Wg)
+        self.dWg  = np.zeros_like(self.Wg )
         self.dWgx = np.zeros_like(self.Wgx)
         self.dWgh = np.zeros_like(self.Wgh)
         
-        self.dWi  = np.zeros_like(self.Wi) 
+        self.dWi  = np.zeros_like(self.Wi )
         self.dWix = np.zeros_like(self.Wix) 
         self.dWih = np.zeros_like(self.Wih)
         
-        self.dWf  = np.zeros_like(self.Wf) 
+        self.dWf  = np.zeros_like(self.Wf )
         self.dWfx = np.zeros_like(self.Wfx) 
         self.dWfh = np.zeros_like(self.Wfh)
         
-        self.dWo  = np.zeros_like(self.Wo) 
+        self.dWo  = np.zeros_like(self.Wo )
         self.dWox = np.zeros_like(self.Wox) 
         self.dWoh = np.zeros_like(self.Woh)
 
@@ -95,8 +95,6 @@ class LstmParam:
         Weight update
         """
         # [150, 100]
-
-
         self.Wg  -= lr * self.dWg
         self.Wgx -= lr * self.dWgx
         self.Wgh -= lr * self.dWgh
@@ -113,19 +111,15 @@ class LstmParam:
         self.Wox -= lr * self.dWox
         self.Woh -= lr * self.dWoh
 
-
-
         # [100 , 1]
         self.Bg -= lr * self.dBg
         self.Bi -= lr * self.dBi
         self.Bf -= lr * self.dBf
         self.Bo -= lr * self.dBo
         
-
         # reset derivatives to zero
 
         # [150, 100]
-
         self.dWg  = np.zeros_like(self.Wg)
         self.dWgx = np.zeros_like(self.Wgx)
         self.dWgh = np.zeros_like(self.Wgh)
@@ -148,9 +142,6 @@ class LstmParam:
         self.dBf = np.zeros_like(self.Bf) 
         self.dBo = np.zeros_like(self.Bo) 
 
-        #pdb.set_trace()
-
-
 
 
 class CellState:
@@ -158,19 +149,19 @@ class CellState:
     State associated with an LSTM node
     """
 
-    def __init__(self, mem_cell_ct, x_dim):
+    def __init__(self, nCells, xSize):
         print "__init__ CellState"
 
         # N dimensional vectors
-        self.g = np.zeros(mem_cell_ct) # cell input
-        self.i = np.zeros(mem_cell_ct) # input gate
-        self.f = np.zeros(mem_cell_ct) # forget gate
-        self.o = np.zeros(mem_cell_ct) # output gate
-        self.s = np.zeros(mem_cell_ct) # cell state
-        self.h = np.zeros(mem_cell_ct) # cell output
+        self.g = np.zeros(nCells) # cell input
+        self.i = np.zeros(nCells) # input gate
+        self.f = np.zeros(nCells) # forget gate
+        self.o = np.zeros(nCells) # output gate
+        self.s = np.zeros(nCells) # cell state
+        self.h = np.zeros(nCells) # cell output
         self.bottom_diff_h = np.zeros_like(self.h)
         self.bottom_diff_s = np.zeros_like(self.s)
-        self.bottom_diff_x = np.zeros(x_dim)
+        self.bottom_diff_x = np.zeros(xSize)
 
 
 
@@ -185,7 +176,7 @@ class LstmCell:
         print "__init__ LstmCell"
 
         # store reference to parameters and to activations
-        self.state = CellState(PARAMS.mem_cell_ct, PARAMS.x_dim)
+        self.state = CellState(PARAMS.nCells, PARAMS.xSize)
         self.param = PARAMS
 
         # non-recurrent input to node
@@ -233,7 +224,7 @@ class LstmCell:
         Bf  = self.param.Bf
         Bo  = self.param.Bo
 
-
+        #pdb.set_trace()
         self.state.g = np.tanh( DP(Wg,xc) + Bg )  # cell input
         self.state.i = sigmoid( DP(Wi,xc) + Bi )  #    input gate
         self.state.f = sigmoid( DP(Wf,xc) + Bf )  #    forget gate
@@ -253,7 +244,7 @@ class LstmCell:
         do = self.state.s * top_diff_h
         di = self.state.g * ds
         dg = self.state.i * ds
-        df = self.s_prev * ds
+        df = self.s_prev  * ds
 
         # diffs w.r.t. vector inside sigma / tanh function
 
@@ -289,10 +280,10 @@ class LstmCell:
         self.state.bottom_diff_s = ds * self.state.f
 
         # [50 , 1]
-        self.state.bottom_diff_x = dxc[:self.param.x_dim]
+        self.state.bottom_diff_x = dxc[:self.param.xSize]
 
         # [100  1]
-        self.state.bottom_diff_h = dxc[self.param.x_dim:]
+        self.state.bottom_diff_h = dxc[self.param.xSize:]
 
 
 class LstmNetwork():
@@ -326,7 +317,6 @@ class LstmNetwork():
         call self.PARAMS.apply_diff() 
         """
 
-
         assert len(y_list) == self.nUsedCells
         idx = self.nUsedCells - 1
 
@@ -338,7 +328,7 @@ class LstmNetwork():
         diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        diff_s = np.zeros(self.PARAMS.mem_cell_ct)
+        diff_s = np.zeros(self.PARAMS.nCells)
 
         self.CELLS[idx].top_diff_is(diff_h, diff_s)
 
@@ -350,7 +340,6 @@ class LstmNetwork():
 
             pred    = self.CELLS[idx].state.h
             label   = y_list[idx],
-
 
             loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
 

@@ -57,7 +57,6 @@ def example_0():
     # Train and sample at the same time
     for epoch in range(nEpochs):
 
-        
         for ind in range(nOut):
 
             # Input 50 random numbers to LSTM
