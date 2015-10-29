@@ -54,16 +54,16 @@ class LstmParam:
 
 
 
-        self.Wg = randArr(-0.1, 0.1, nCells, concat_len)
-        self.Wi = randArr(-0.1, 0.1, nCells, concat_len)
-        self.Wf = randArr(-0.1, 0.1, nCells, concat_len)
-        self.Wo = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wg  = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wi  = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wf  = randArr(-0.1, 0.1, nCells, concat_len)
+        self.Wo  = randArr(-0.1, 0.1, nCells, concat_len)
 
         ## bias terms
-        self.Bg = randArr(-0.1, 0.1, nCells)
-        self.Bi = randArr(-0.1, 0.1, nCells)
-        self.Bf = randArr(-0.1, 0.1, nCells)
-        self.Bo = randArr(-0.1, 0.1, nCells)
+        self.Bg  = randArr(-0.1, 0.1, nCells)
+        self.Bi  = randArr(-0.1, 0.1, nCells)
+        self.Bf  = randArr(-0.1, 0.1, nCells)
+        self.Bo  = randArr(-0.1, 0.1, nCells)
 
 
         # diffs (derivative of loss function w.r.t. all parameters)
@@ -72,22 +72,22 @@ class LstmParam:
         self.dWgh = np.zeros_like(self.Wgh)
         
         self.dWi  = np.zeros_like(self.Wi )
-        self.dWix = np.zeros_like(self.Wix) 
+        self.dWix = np.zeros_like(self.Wix)
         self.dWih = np.zeros_like(self.Wih)
         
         self.dWf  = np.zeros_like(self.Wf )
-        self.dWfx = np.zeros_like(self.Wfx) 
+        self.dWfx = np.zeros_like(self.Wfx)
         self.dWfh = np.zeros_like(self.Wfh)
         
         self.dWo  = np.zeros_like(self.Wo )
-        self.dWox = np.zeros_like(self.Wox) 
+        self.dWox = np.zeros_like(self.Wox)
         self.dWoh = np.zeros_like(self.Woh)
 
         # [100, 1]
-        self.dBg = np.zeros_like(self.Bg)
-        self.dBi = np.zeros_like(self.Bi) 
-        self.dBf = np.zeros_like(self.Bf) 
-        self.dBo = np.zeros_like(self.Bo) 
+        self.dBg  = np.zeros_like(self.Bg)
+        self.dBi  = np.zeros_like(self.Bi)
+        self.dBf  = np.zeros_like(self.Bf)
+        self.dBo  = np.zeros_like(self.Bo)
 
 
     def apply_diff(self, lr = 1):
@@ -112,10 +112,10 @@ class LstmParam:
         self.Woh -= lr * self.dWoh
 
         # [100 , 1]
-        self.Bg -= lr * self.dBg
-        self.Bi -= lr * self.dBi
-        self.Bf -= lr * self.dBf
-        self.Bo -= lr * self.dBo
+        self.Bg  -= lr * self.dBg
+        self.Bi  -= lr * self.dBi
+        self.Bf  -= lr * self.dBf
+        self.Bo  -= lr * self.dBo
         
         # reset derivatives to zero
 
@@ -124,23 +124,23 @@ class LstmParam:
         self.dWgx = np.zeros_like(self.Wgx)
         self.dWgh = np.zeros_like(self.Wgh)
         
-        self.dWi  = np.zeros_like(self.Wi) 
-        self.dWix = np.zeros_like(self.Wix) 
+        self.dWi  = np.zeros_like(self.Wi)
+        self.dWix = np.zeros_like(self.Wix)
         self.dWih = np.zeros_like(self.Wih)
         
-        self.dWf  = np.zeros_like(self.Wf) 
-        self.dWfx = np.zeros_like(self.Wfx) 
+        self.dWf  = np.zeros_like(self.Wf)
+        self.dWfx = np.zeros_like(self.Wfx)
         self.dWfh = np.zeros_like(self.Wfh)
         
-        self.dWo  = np.zeros_like(self.Wo) 
-        self.dWox = np.zeros_like(self.Wox) 
+        self.dWo  = np.zeros_like(self.Wo)
+        self.dWox = np.zeros_like(self.Wox)
         self.dWoh = np.zeros_like(self.Woh)
 
         # [100, 1]
         self.dBg = np.zeros_like(self.Bg)
-        self.dBi = np.zeros_like(self.Bi) 
-        self.dBf = np.zeros_like(self.Bf) 
-        self.dBo = np.zeros_like(self.Bo) 
+        self.dBi = np.zeros_like(self.Bi)
+        self.dBf = np.zeros_like(self.Bf)
+        self.dBo = np.zeros_like(self.Bo)
 
 
 
@@ -153,12 +153,13 @@ class CellState:
         print "__init__ CellState"
 
         # N dimensional vectors
-        self.g = np.zeros(nCells) # cell input
-        self.i = np.zeros(nCells) # input gate
-        self.f = np.zeros(nCells) # forget gate
-        self.o = np.zeros(nCells) # output gate
-        self.s = np.zeros(nCells) # cell state
-        self.h = np.zeros(nCells) # cell output
+        self.g = np.zeros(nCells) # g - cell input
+        self.i = np.zeros(nCells) # i - input gate
+        self.f = np.zeros(nCells) # f - forget gate
+        self.o = np.zeros(nCells) # o - output gate
+        self.s = np.zeros(nCells) # s - cell state
+        self.h = np.zeros(nCells) # h - cell output
+
         self.bottom_diff_h = np.zeros_like(self.h)
         self.bottom_diff_s = np.zeros_like(self.s)
         self.bottom_diff_x = np.zeros(xSize)
@@ -180,7 +181,7 @@ class LstmCell:
         self.param = PARAMS
 
         # non-recurrent input to node
-        self.x = None
+        self.x  = None
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
@@ -230,7 +231,7 @@ class LstmCell:
         self.state.f = sigmoid( DP(Wf,xc) + Bf )  #    forget gate
         self.state.o = sigmoid( DP(Wo,xc) + Bo )  #    output gate
         
-        self.state.s = self.state.g * self.state.i + s_prev * self.state.f #    cell state
+        self.state.s = self.state.g * self.state.i + s_prev * self.state.f # cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
         
