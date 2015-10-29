@@ -26,19 +26,19 @@ def example_0():
     #Number of iterations or epochs
     nEpochs = 100;
 
-    mem_cell_ct = 100
+    nCells = 100
     
     # Number of random input numbers for each output
-    x_dim = 50
+    xSize = 50
     
-    concat_len = x_dim + mem_cell_ct
+    concat_len = xSize + nCells
 
     # Minimise cell index number
     LossIdx = 0;
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
-    PARAMS = LstmParam(mem_cell_ct, x_dim) 
+    PARAMS = LstmParam(nCells, xSize)
     
     
     ## Prepare target outputs
@@ -50,7 +50,7 @@ def example_0():
     LSTM = LstmNetwork(PARAMS, nOut)
 
     # Input data
-    input_val_arr = np.random.random([nOut, x_dim])
+    input_val_arr = np.random.random([nOut, xSize])
 
     #pdb.set_trace()
     
@@ -70,7 +70,7 @@ def example_0():
             #pdb.set_trace()
 
             #print "  y_pred[%d] : %3.3f" % (ind, state)
-            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (x_dim, y_list[ind], state, y_list[ind]-state)
+            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, y_list[ind], state, y_list[ind]-state)
 
             #pdb.set_trace()
 

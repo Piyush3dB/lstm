@@ -253,7 +253,7 @@ class LstmCell:
         di_input = (1. - self.state.i) * self.state.i * di 
         df_input = (1. - self.state.f) * self.state.f * df 
         do_input = (1. - self.state.o) * self.state.o * do 
-        dg_input = (1. - self.state.g ** 2) * dg
+        dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here?
 
         # diffs w.r.t. inputs
         # [100,150] here
@@ -326,7 +326,8 @@ class LstmNetwork():
         label   = y_list[idx],
 
         loss    = LOSS_LAYER.loss(        pred, label, lossIdx )
-        diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
+
+        diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx ) # derivative of loss function
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.PARAMS.nCells)
