@@ -313,64 +313,6 @@ class LstmNetwork():
         # Current number of used cells in network
         self.nUsedCells = 0
 
-
-    def bptt(self, y_list, LOSS_LAYER, lossIdx):
-        """
-        Updates diffs by setting target sequence 
-        with corresponding loss layer. 
-        Will *NOT* update parameters.  To update parameters,
-        call self.PARAMS.apply_diff() 
-        """
-
-        assert len(y_list) == self.nUsedCells
-        idx = self.nUsedCells - 1
-
-        # first node only gets diffs from label ...
-        pred    = self.CELLS[idx].state.h
-        label   = y_list[idx],
-
-        loss    = LOSS_LAYER.loss(        pred, label, lossIdx )
-
-        diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx ) # derivative of loss function
-
-        # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        diff_s = np.zeros(self.PARAMS.cellWidth)
-
-        self.CELLS[idx].backwardPass(diff_h, diff_s)
-
-        idx -= 1
-        lidx = idx
-
-        while lidx >= 0: # loop through every cell
-
-            pred    = self.CELLS[lidx].state.h
-            label   = y_list[lidx],
-
-            loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
-
-            lidx -= 1 
-
-
-
-        ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
-        ### we also propagate error along constant error carousel using diff_s
-        while idx >= 0: # loop through every cell
-
-            pred    = self.CELLS[idx].state.h
-            label   = y_list[idx],
-
-            #loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
-
-            diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
-            diff_h += self.CELLS[idx + 1].state.dh
-
-            diff_s  = self.CELLS[idx + 1].state.ds
-
-            self.CELLS[idx].backwardPass(diff_h, diff_s)
-            idx -= 1 
-
-        return loss
-
     def gotoFirstCell(self):
         """
         Reset counter to go to first cell in network
@@ -405,3 +347,52 @@ class LstmNetwork():
         # Debug
         #print ("h[0] = %d") % (self.CELLS[idx-1].state.h)
         #print (self.CELLS[idx].state.h[0])
+
+    def bptt(self, y_list, LOSS_LAYER):
+        """
+        Updates diffs by setting target sequence 
+        with corresponding loss layer. 
+        Will *NOT* update parameters.  To update parameters,
+        call self.PARAMS.apply_diff() 
+        """
+
+        assert len(y_list) == self.nUsedCells
+        # here s is not affecting loss due to h(t+1), hence we set equal to zero
+        diff_s = np.zeros(self.PARAMS.cellWidth)
+
+        # Get latest cell index
+        idx = self.nUsedCells - 1
+
+        # get data pair
+        pred    = self.CELLS[idx].state.h
+        label   = y_list[idx]
+
+        # Loss function computation
+        loss    = LOSS_LAYER.loss(        pred, label )
+
+        # Derivative of loss function
+        diff_h  = LOSS_LAYER.loss_derivative( pred, label )
+
+        # Back propagation
+        self.CELLS[idx].backwardPass(diff_h, diff_s)
+
+        ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
+        ### we also propagate error along constant error carousel using diff_s
+        idx -= 1
+        while idx >= 0: # loop through every cell
+
+            pred    = self.CELLS[idx].state.h
+            label   = y_list[idx],
+
+            loss   += LOSS_LAYER.loss(        pred, label )
+
+            diff_h  = LOSS_LAYER.loss_derivative( pred, label )
+            diff_h += self.CELLS[idx + 1].state.dh
+
+            diff_s  = self.CELLS[idx + 1].state.ds
+
+            self.CELLS[idx].backwardPass(diff_h, diff_s)
+            idx -= 1 
+
+        return loss
+

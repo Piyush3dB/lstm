@@ -9,11 +9,14 @@ class ToyLossLayer:
     Computes square loss with first element of hidden layer array.
     """
     @classmethod
-    def loss(self, pred, label, idx):
+    def loss(self, pred, label, idx=0):
         return (pred[idx] - label) ** 2
 
+    """
+    Computes derivative of loss function
+    """
     @classmethod
-    def bottom_diff(self, pred, label, idx):
+    def loss_derivative(self, pred, label, idx=0):
         diff = np.zeros_like(pred)
         diff[idx] = 2 * (pred[idx] - label)
         return diff
@@ -26,15 +29,13 @@ def example_0():
     #Number of iterations or epochs
     nEpochs = 100;
 
+    # Internal cell widths
     cellWidth = 100
     
     # Number of random input numbers for each output
     xSize = 50
     
     concat_len = xSize + cellWidth
-
-    # Minimise cell index number
-    LossIdx = 0;
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
@@ -76,7 +77,7 @@ def example_0():
             #pdb.set_trace()
 
         # Evaluate loss function and sample
-        loss = LSTM.bptt(y_list, ToyLossLayer, LossIdx)
+        loss = LSTM.bptt(y_list, ToyLossLayer)
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
         # Apply weight update
