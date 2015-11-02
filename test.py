@@ -83,7 +83,7 @@ def example_0():
         PARAMS.apply_diff(lr=0.1)
 
         # Clear inputs to start afresh for next epoch
-        LSTM.gotoStartCell()
+        LSTM.gotoFirstCell()
 
 if __name__ == "__main__":
     example_0()

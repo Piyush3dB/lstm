@@ -189,7 +189,7 @@ class LstmCell:
 
         # States
 
-    def forwardPass(self, x, s_prev = None, h_1 = None):
+    def forwardPass(self, x, s_prev_cell = None, h_prev_cell = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -197,12 +197,12 @@ class LstmCell:
         """
         # save data for use in backprop
         # [100, 1]
-        self.s_prev = s_prev
-        self.h_prev = h_1
+        self.s_prev_cell = s_prev_cell
+        self.h_prev = h_prev_cell
 
         # concatenate x(t) and h(t-1)
         # [150 , 1]
-        xc      = np.hstack((x,  h_1))
+        xc      = np.hstack((x,  h_prev_cell))
         self.xc = xc
         
         # Apply cell equations to new weights and inputs
@@ -235,7 +235,7 @@ class LstmCell:
         self.state.f = sigmoid( DP(Wf,xc) + Bf )  #    forget gate
         self.state.o = sigmoid( DP(Wo,xc) + Bo )  #    output gate
         
-        self.state.s = self.state.g * self.state.i + s_prev * self.state.f # cell state
+        self.state.s = self.state.g * self.state.i + s_prev_cell * self.state.f # cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
         
@@ -249,7 +249,7 @@ class LstmCell:
         do = self.state.s * diff_h
         di = self.state.g * ds
         dg = self.state.i * ds
-        df = self.s_prev  * ds
+        df = self.s_prev_cell  * ds
 
         # diffs w.r.t. vector inside sigma / tanh function
 
@@ -371,7 +371,7 @@ class LstmNetwork():
 
         return loss
 
-    def gotoStartCell(self):
+    def gotoFirstCell(self):
         """
         Reset counter to go to first cell in network
         """
@@ -387,17 +387,17 @@ class LstmNetwork():
 
         if self.nUsedCells == 0: 
             # no recurrent inputs yet
-            s_prev = np.zeros_like(self.CELLS[idx].state.s)
-            h_prev = np.zeros_like(self.CELLS[idx].state.h)
+            s_prev_cell = np.zeros_like(self.CELLS[idx].state.s)
+            h_prev_cell = np.zeros_like(self.CELLS[idx].state.h)
         else: 
             # use recurrent inputs
-            s_prev = self.CELLS[idx - 1].state.s
-            h_prev = self.CELLS[idx - 1].state.h
+            s_prev_cell = self.CELLS[idx - 1].state.s
+            h_prev_cell = self.CELLS[idx - 1].state.h
 
         # Apply data to the current LSTM cell moving from bottom to top
 
         #pdb.set_trace()
-        self.CELLS[idx].forwardPass(x, s_prev, h_prev)
+        self.CELLS[idx].forwardPass(x, s_prev_cell, h_prev_cell)
 
         # Increment number of active cells in network
         self.nUsedCells += 1
