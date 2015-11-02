@@ -44,20 +44,20 @@ def example_0():
     ## Prepare target outputs
     y_list = [0.5, 0.2, 0.1, 0.5]
     #y_list = [0.12345]
-    nOut   = len(y_list)
+    ySize   = len(y_list)
 
     # Initialise LSTM 
-    LSTM = LstmNetwork(PARAMS, nOut)
+    LSTM = LstmNetwork(PARAMS, ySize)
 
     # Input data
-    input_val_arr = np.random.random([nOut, xSize])
+    input_val_arr = np.random.random([ySize, xSize])
 
     #pdb.set_trace()
     
     # Train and sample at the same time
     for epoch in range(nEpochs):
 
-        for ind in range(nOut):
+        for ind in range(ySize):
 
             # Input 50 random numbers to LSTM
             x = input_val_arr[ind]
