@@ -42,9 +42,10 @@ def example_0():
     
     
     ## Prepare target outputs
-    y_list = [0.5, 0.2, 0.1, 0.5]
+    y_list  = [0.5, 0.2, 0.1, 0.5]
     #y_list = [0.12345]
     ySize   = len(y_list)
+    nCells  = ySize
 
     # Initialise LSTM 
     LSTM = LstmNetwork(PARAMS, ySize)

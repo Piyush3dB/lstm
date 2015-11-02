@@ -292,21 +292,21 @@ class LstmCell:
 
 
 class LstmNetwork():
-    def __init__(self, PARAMS, nOut):
+    def __init__(self, PARAMS, nCells):
         """
         Initialise LSTM network 
         """
         print "__init__ LstmNetwork"
 
         # Total number of cells in network
-        self.cellWidth = nOut
+        self.nCells = nCells
 
         # Init parameters structure
         self.PARAMS = PARAMS
 
         # Create network of cells
         self.CELLS = []
-        for _ in range(self.cellWidth):
+        for _ in range(self.nCells):
             newCell  = LstmCell(self.PARAMS)
             self.CELLS.append(newCell)
 
