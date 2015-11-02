@@ -29,6 +29,8 @@ class LstmParam:
         print "__init__ LstmParam"
 
         self.xSize  = xSize
+        self.numCells = xSize
+
         self.cellWidth = cellWidth
         concat_len  = xSize + cellWidth
 
@@ -189,7 +191,7 @@ class LstmCell:
 
         # States
 
-    def forwardPass(self, x, s_prev = None, h_1 = None):
+    def forwardPass(self, x, s_prev = None, h_prev = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -198,11 +200,15 @@ class LstmCell:
         # save data for use in backprop
         # [100, 1]
         self.s_prev = s_prev
-        self.h_prev = h_1
+        self.h_prev = h_prev
+
+        self.state.s = s_prev
+        self.state.h = h_prev
+
 
         # concatenate x(t) and h(t-1)
         # [150 , 1]
-        xc      = np.hstack((x,  h_1))
+        xc      = np.hstack((x,  h_prev))
         self.xc = xc
         
         # Apply cell equations to new weights and inputs
@@ -235,7 +241,7 @@ class LstmCell:
         self.state.f = sigmoid( DP(Wf,xc) + Bf )  #    forget gate
         self.state.o = sigmoid( DP(Wo,xc) + Bo )  #    output gate
         
-        self.state.s = self.state.g * self.state.i + s_prev * self.state.f # cell state
+        self.state.s = self.state.g * self.state.i + self.state.s * self.state.f # cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
         
@@ -299,22 +305,22 @@ class LstmNetwork():
         print "__init__ LstmNetwork"
 
         # Total number of cells in network
-        self.cellWidth = nOut
+        self.numCells = nOut
 
         # Init parameters structure
         self.PARAMS = PARAMS
 
         # Create network of cells
         self.CELLS = []
-        for _ in range(self.cellWidth):
+        for _ in range(self.numCells):
             newCell  = LstmCell(self.PARAMS)
             self.CELLS.append(newCell)
 
         # Current number of used cells in network
-        self.nUsedCells = 0
+        self.nActvCells = 0
 
 
-    def bptt(self, y_list, LOSS_LAYER, lossIdx):
+    def bptt(self, targetList, LOSS_LAYER, lossIdx):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -322,29 +328,29 @@ class LstmNetwork():
         call self.PARAMS.apply_diff() 
         """
 
-        assert len(y_list) == self.nUsedCells
-        idx = self.nUsedCells - 1
+        assert len(targetList) == self.nActvCells
+        idx = self.nActvCells - 1
 
         # first node only gets diffs from label ...
         pred    = self.CELLS[idx].state.h
-        label   = y_list[idx],
+        label   = targetList[idx],
 
         loss    = LOSS_LAYER.loss(        pred, label, lossIdx )
 
         diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx ) # derivative of loss function
 
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        diff_s = np.zeros(self.PARAMS.cellWidth)
+        diff_s = np.zeros(self.PARAMS.numCells)
 
         self.CELLS[idx].backwardPass(diff_h, diff_s)
 
         idx -= 1
-        lidx = idx
 
+        lidx = idx
         while lidx >= 0: # loop through every cell
 
             pred    = self.CELLS[lidx].state.h
-            label   = y_list[lidx],
+            label   = targetList[lidx],
 
             loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
 
@@ -357,9 +363,7 @@ class LstmNetwork():
         while idx >= 0: # loop through every cell
 
             pred    = self.CELLS[idx].state.h
-            label   = y_list[idx],
-
-            #loss   += LOSS_LAYER.loss(        pred, label, lossIdx )
+            label   = targetList[idx],
 
             diff_h  = LOSS_LAYER.bottom_diff( pred, label, lossIdx )
             diff_h += self.CELLS[idx + 1].state.dh
@@ -375,7 +379,7 @@ class LstmNetwork():
         """
         Reset counter to go to first cell in network
         """
-        self.nUsedCells = 0
+        self.nActvCells = 0
 
     def forwardPass(self, x):
         """
@@ -383,9 +387,9 @@ class LstmNetwork():
         """
 
         # get index of current cell
-        idx = self.nUsedCells
+        idx = self.nActvCells
 
-        if self.nUsedCells == 0: 
+        if self.nActvCells == 0: 
             # no recurrent inputs yet
             s_prev = np.zeros_like(self.CELLS[idx].state.s)
             h_prev = np.zeros_like(self.CELLS[idx].state.h)
@@ -400,7 +404,7 @@ class LstmNetwork():
         self.CELLS[idx].forwardPass(x, s_prev, h_prev)
 
         # Increment number of active cells in network
-        self.nUsedCells += 1
+        self.nActvCells += 1
 
         # Debug
         #print ("h[0] = %d") % (self.CELLS[idx-1].state.h)

@@ -26,19 +26,19 @@ def example_0():
     #Number of iterations or epochs
     nEpochs = 100;
 
-    nCells = 100
+    cellWidth = 100
     
     # Number of random input numbers for each output
     xSize = 50
     
-    concat_len = xSize + nCells
+    concat_len = xSize + cellWidth
 
     # Minimise cell index number
     LossIdx = 0;
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
-    PARAMS = LstmParam(nCells, xSize)
+    PARAMS = LstmParam(cellWidth, xSize)
     
     
     ## Prepare target outputs
