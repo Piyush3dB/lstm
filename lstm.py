@@ -385,8 +385,7 @@ class LstmNetwork():
         self.CELLS[idx].backwardPass(diff_h, diff_s)
 
         # Back propagate to every cell
-        idx -= 1
-        while idx >= 0: # loop through every cell
+        for idx in reversed(range(self.nCells-1)):
 
             # Get target and prediction
             pred    = self.CELLS[idx].state.h
@@ -408,7 +407,6 @@ class LstmNetwork():
 
             # Backprop for this cell
             self.CELLS[idx].backwardPass(diff_h, diff_s)
-            idx -= 1 
 
         return loss
 
