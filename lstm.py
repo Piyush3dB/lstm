@@ -317,10 +317,7 @@ class LstmNetwork():
         """
         Sample from network cell
         """
-
         state = randArr(-0.1, 0.1, self.nCells)
-
-        # Sample from model
         for ind in range(self.nCells):
             state[ind] = self.CELLS[ind].state.h[0]
 

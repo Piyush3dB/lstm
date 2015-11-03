@@ -50,6 +50,9 @@ def example_0():
     # Train and sample at the same time
     for epoch in range(nEpochs):
 
+        #
+        # Train model
+        #
 
         # Input data
         for ind in range(ySize):
@@ -57,23 +60,22 @@ def example_0():
             x = inData[ind]
             LSTM.forward(x)
 
-
         # Evaluate loss function and back propagate through time
         loss = LSTM.bptt(outData, ToyLossLayer)
 
         # Apply weight update
         PARAMS.apply_diff(lr=0.1)
 
-        # Sample from model
-        testLSTM = LstmNetwork(PARAMS, nCells)
-        state = testLSTM.sample()
-
         # Clear inputs to start afresh for next epoch
         LSTM.gotoFirstCell()
 
         #
-        # Debug logging 
+        # Test model and log information
         #
+
+        # Sample from model
+        testLSTM = LstmNetwork(PARAMS, nCells)
+        state = testLSTM.sample()
         for ind in range(nCells):
             print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, outData[ind], state[ind], outData[ind]-state[ind])
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
