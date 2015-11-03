@@ -440,14 +440,19 @@ class LstmNetwork():
 
         # Derivative of loss function
         dhl  = LOSS_LAYER.loss_derivative( pred, label )
-        dh   = 0
-        diff_h = dhl + dh
+        dh_prev   = 0
+        diff_h = dhl + dh_prev
 
-        ds = 0
-        diff_s = ds
+        ds_prev = 0
+        diff_s = ds_prev
 
         # Back propagation for newest cell
         self.CELLS[idx].backwardPass(diff_h, diff_s)
+
+        dh_prev = self.CELLS[idx].state.dh
+        ds_prev = self.CELLS[idx].state.ds
+
+
 
         # Back propagate towards oldest cell
         for idx in reversed(range(self.nCells-1)):
@@ -462,14 +467,19 @@ class LstmNetwork():
 
             # Compute derivative of loss function
             dhl    = LOSS_LAYER.loss_derivative( pred, label )
-            dh     = self.CELLS[idx + 1].state.dh
-            diff_h = dhl + dh
+            #dh_prev     = self.CELLS[idx + 1].state.dh
+            diff_h = dhl + dh_prev
             
             # propagate error along constant error carousel
-            ds = self.CELLS[idx + 1].state.ds
-            diff_s = ds
+            #ds_prev = self.CELLS[idx + 1].state.ds
+            diff_s = ds_prev
 
             # Backprop for this cell
             self.CELLS[idx].backwardPass(diff_h, diff_s)
+
+            dh_prev = self.CELLS[idx].state.dh
+            ds_prev = self.CELLS[idx].state.ds
+
+
 
         return loss
