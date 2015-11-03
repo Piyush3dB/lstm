@@ -396,10 +396,12 @@ class LstmNetwork():
             loss   += LOSS_LAYER.loss(        pred, label )
 
             # Compute derivative of loss function
-            diff_h  = LOSS_LAYER.loss_derivative( pred, label )
+            dhl  = LOSS_LAYER.loss_derivative( pred, label )
 
             # Accumulate derivative from previous cell
-            diff_h += self.CELLS[idx + 1].state.dh
+            dh = self.CELLS[idx + 1].state.dh
+
+            diff_h = dhl + dh
             
             # propagate error along constant error carousel
             diff_s  = self.CELLS[idx + 1].state.ds
