@@ -362,6 +362,7 @@ class LstmNetwork():
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
         diff_s = np.zeros(self.PARAMS.cellWidth)
         diff_h = np.zeros(self.PARAMS.cellWidth)
+        loss = 0
 
         # Get latest cell index
         idx = self.nUsedCells - 1
@@ -371,7 +372,8 @@ class LstmNetwork():
         label   = outData[idx]
 
         # Loss function computation
-        loss    = LOSS_LAYER.loss(        pred, label )
+        l    = LOSS_LAYER.loss(        pred, label )
+        loss += l
 
         # Derivative of loss function
         dhl  = LOSS_LAYER.loss_derivative( pred, label )
@@ -392,7 +394,8 @@ class LstmNetwork():
             label   = outData[idx],
             
             # Compute loss function
-            loss   += LOSS_LAYER.loss(        pred, label )
+            l   = LOSS_LAYER.loss(        pred, label )
+            loss += l
 
             # Compute derivative of loss function
             dhl  = LOSS_LAYER.loss_derivative( pred, label )
