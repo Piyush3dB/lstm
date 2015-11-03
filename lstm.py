@@ -243,6 +243,7 @@ class LstmCell:
         """
         Sample from network cell
         """
+        #print  self.state.h[0]
         return self.state.h[0]
 
     
@@ -303,7 +304,7 @@ class LstmNetwork():
         """
         #print "__init__ LstmNetwork"
 
-        # Total number of cells in network
+        # Total number of unfolded cells in network
         self.nCells = nCells
 
         # Init parameters structure
@@ -337,7 +338,7 @@ class LstmNetwork():
 
     def forward(self, x):
         """
-        Apply input to network
+        Propagate inputs through unfolded network
         """
 
         # Initialise previous states for first cell
@@ -358,6 +359,7 @@ class LstmNetwork():
 
     def bptt(self, outData, LOSS_LAYER):
         """
+        Back propagation through time.
         Updates derivatives by setting target sequence 
         with corresponding loss layer. 
         """
@@ -373,7 +375,7 @@ class LstmNetwork():
         dh_prev   = 0
         ds_prev   = 0
 
-        # Back propagate towards oldest cell
+        # Back propagate gradients towards oldest cell
         for idx in reversed(range(self.nCells)):
 
             # Get target and prediction

@@ -38,7 +38,9 @@ def example_0():
     
     ## Prepare target outputs
     outData  = [0.5, 0.2, 0.1, 0.5]
-    nCells   = len(outData) # number of unfolded cells
+    
+    # number of unfolded cells
+    nCells   = len(outData)
 
     # Initialise LSTM 
     LSTM = LstmNetwork(PARAMS, nCells)
@@ -71,12 +73,14 @@ def example_0():
         #
 
         # Sample from new model configured with the trained weights
-        testLSTM = LstmNetwork(PARAMS, nCells)
-        state = testLSTM.sample()
+        #testLSTM = LstmNetwork(PARAMS, nCells)
+        state = LSTM.sample()
+
+        #pdb.set_trace()
 
         # Print logging information
         for ind in range(nCells):
-            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, outData[ind], state[ind], outData[ind]-state[ind])
+            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, float(outData[ind]), float(state[ind]), outData[ind]-state[ind])
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
 
