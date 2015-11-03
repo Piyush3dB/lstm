@@ -26,7 +26,7 @@ class LstmParam:
 
     def __init__(self, cellWidth, xSize):
 
-        print "__init__ LstmParam"
+        #print "__init__ LstmParam"
 
         self.xSize  = xSize
         self.cellWidth = cellWidth
@@ -150,7 +150,7 @@ class CellState:
     """
 
     def __init__(self, cellWidth, xSize):
-        print "__init__ CellState"
+        #print "__init__ CellState"
 
         # N dimensional vectors
         self.g = np.zeros(cellWidth) # g - cell input
@@ -176,7 +176,7 @@ class LstmCell:
 
     def __init__(self, PARAMS):
 
-        print "__init__ LstmCell"
+        #print "__init__ LstmCell"
 
         # store reference to parameters and to activations
         self.state = CellState(PARAMS.cellWidth, PARAMS.xSize)
@@ -296,7 +296,7 @@ class LstmNetwork():
         """
         Initialise LSTM network 
         """
-        print "__init__ LstmNetwork"
+        #print "__init__ LstmNetwork"
 
         # Total number of cells in network
         self.nCells = nCells
@@ -326,7 +326,7 @@ class LstmNetwork():
 
     def gotoFirstCell(self):
         """
-        Reset counter to go to first cell in network
+        Reset counter to go to first cell in unfolded network
         """
         self.nUsedCells = 0
 
@@ -335,31 +335,22 @@ class LstmNetwork():
         Apply input to network
         """
 
-        # get index of current cell
-        idx = self.nUsedCells
+        # Initialise previous states for first cell
+        s_prev = np.zeros(self.PARAMS.cellWidth)
+        h_prev = np.zeros(self.PARAMS.cellWidth)
 
-        if self.nUsedCells == 0: 
-            # no recurrent inputs yet
-            s_prev_cell = np.zeros_like(self.CELLS[idx].state.s)
-            h_prev_cell = np.zeros_like(self.CELLS[idx].state.h)
-        else: 
-            # use recurrent inputs
-            s_prev_cell = self.CELLS[idx - 1].state.s
-            h_prev_cell = self.CELLS[idx - 1].state.h
+        # Forward propagate in time
+        for idx in range(self.nCells):
+            self.CELLS[idx].forwardPass(x[idx], s_prev, h_prev)
 
-        # Apply data to the current LSTM cell moving from bottom to top
+            s_prev = self.CELLS[idx].state.s
+            h_prev = self.CELLS[idx].state.h
 
-        #pdb.set_trace()
-        self.CELLS[idx].forwardPass(x, s_prev_cell, h_prev_cell)
+            self.nUsedCells += 1
 
-        # Increment number of active cells in network
-        self.nUsedCells += 1
 
-        # Debug
-        #print ("h[0] = %d") % (self.CELLS[idx-1].state.h)
-        #print (self.CELLS[idx].state.h[0])
 
-    def bptt(self, y_list, LOSS_LAYER):
+    def bptt(self, outData, LOSS_LAYER):
         """
         Updates diffs by setting target sequence 
         with corresponding loss layer. 
@@ -367,22 +358,23 @@ class LstmNetwork():
         call self.PARAMS.apply_diff() 
         """
 
-        assert len(y_list) == self.nUsedCells
+        assert len(outData) == self.nUsedCells
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        diff_s = np.zeros(self.PARAMS.cellWidth)
+        #diff_s = np.zeros(self.PARAMS.cellWidth)
 
         # Get latest cell index
         idx = self.nUsedCells - 1
 
         # get data pair
         pred    = self.CELLS[idx].state.h
-        label   = y_list[idx]
+        label   = outData[idx]
 
         # Loss function computation
         loss    = LOSS_LAYER.loss(        pred, label )
 
         # Derivative of loss function
         diff_h  = LOSS_LAYER.loss_derivative( pred, label )
+        diff_s  = np.zeros(self.PARAMS.cellWidth)
 
         # Back propagation for first cell
         self.CELLS[idx].backwardPass(diff_h, diff_s)
@@ -393,7 +385,81 @@ class LstmNetwork():
 
             # Get target and prediction
             pred    = self.CELLS[idx].state.h
-            label   = y_list[idx],
+            label   = outData[idx],
+            
+            # Compute loss function
+            loss   += LOSS_LAYER.loss(        pred, label )
+
+            # Compute derivative of loss function
+            diff_h  = LOSS_LAYER.loss_derivative( pred, label )
+
+            # Accumulate derivative from previous cell
+            diff_h += self.CELLS[idx + 1].state.dh
+            
+            # propagate error along constant error carousel
+            diff_s  = self.CELLS[idx + 1].state.ds
+
+            # Backprop for this cell
+            self.CELLS[idx].backwardPass(diff_h, diff_s)
+            idx -= 1 
+
+        return loss
+
+
+
+
+    def bptt2(self, outData, LOSS_LAYER):
+        """
+        Updates diffs by setting target sequence 
+        with corresponding loss layer. 
+        Will *NOT* update parameters.  To update parameters,
+        call self.PARAMS.apply_diff() 
+        """
+
+        assert len(outData) == self.nUsedCells
+        # here s is not affecting loss due to h(t+1), hence we set equal to zero
+        diff_s = np.zeros(self.PARAMS.cellWidth)
+        #diff_h = np.zeros(self.PARAMS.cellWidth)
+
+        loss = 0
+
+
+        # Back propagate to first cell
+        for idx in reversed(range(self.nCells)):
+            
+            # get data pair
+            pred    = self.CELLS[idx].state.h
+            label   = outData[idx]
+
+            # Loss function computation
+            loss    = LOSS_LAYER.loss(        pred, label )
+
+            # Derivative of loss function
+            diff_h  = LOSS_LAYER.loss_derivative( pred, label )
+
+            # Backprop for this cell
+            self.CELLS[idx].backwardPass(diff_h, diff_s)
+
+            # Update derivatives for next cell
+
+
+
+        # Get latest cell index
+        idx = self.nUsedCells - 1
+
+
+
+
+        # Back propagation for first cell
+        self.CELLS[idx].backwardPass(diff_h, diff_s)
+
+        # Back propagate to every cell
+        idx -= 1
+        while idx >= 0: # loop through every cell
+
+            # Get target and prediction
+            pred    = self.CELLS[idx].state.h
+            label   = outData[idx],
             
             # Compute loss function
             loss   += LOSS_LAYER.loss(        pred, label )
@@ -407,9 +473,8 @@ class LstmNetwork():
             # propagate error along constant error carousel
             diff_s  = self.CELLS[idx + 1].state.ds
 
-            # Backprop for this cell
-            self.CELLS[idx].backwardPass(diff_h, diff_s)
             idx -= 1 
 
         return loss
+
 

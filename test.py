@@ -38,14 +38,13 @@ def example_0():
     
     ## Prepare target outputs
     outData  = [0.5, 0.2, 0.1, 0.5]
-    ySize   = len(outData) # 4
-    nCells  = ySize # number of unfolded cells
+    nCells   = len(outData) # number of unfolded cells
 
     # Initialise LSTM 
     LSTM = LstmNetwork(PARAMS, nCells)
 
     # Input data
-    inData = np.random.random([ySize, xSize]) # [4, 50]
+    inData = np.random.random([nCells, xSize]) # [4, 50]
     
     # Train and sample at the same time
     for epoch in range(nEpochs):
@@ -55,27 +54,27 @@ def example_0():
         #
 
         # Input data
-        for ind in range(ySize):
-            # Input 50 random numbers to LSTM
-            x = inData[ind]
-            LSTM.forward(x)
+        LSTM.forward(inData)
 
         # Evaluate loss function and back propagate through time
         loss = LSTM.bptt(outData, ToyLossLayer)
 
-        # Apply weight update
-        PARAMS.apply_diff(lr=0.1)
-
         # Clear inputs to start afresh for next epoch
         LSTM.gotoFirstCell()
 
+        # Apply weight update
+        PARAMS.apply_diff(lr=0.1)
+
+
         #
-        # Test model and log information
+        # Test model and print logging information
         #
 
-        # Sample from model
+        # Sample from new model configured with the same weights
         testLSTM = LstmNetwork(PARAMS, nCells)
         state = testLSTM.sample()
+
+        # Print logging information
         for ind in range(nCells):
             print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, outData[ind], state[ind], outData[ind]-state[ind])
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
@@ -90,6 +89,4 @@ if __name__ == "__main__":
 #   Input 50 rand.  Target = 0.500. Output = 0.499. Delta = 0.001
 # Epoch:  99. loss: 0.0000022563
 
-
-    #pdb.set_trace()
-
+#pdb.set_trace()
