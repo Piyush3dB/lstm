@@ -333,7 +333,7 @@ class LstmNetwork():
         """
         self.nUsedCells = 0
 
-    def forwardPass(self, x):
+    def forward(self, x):
         """
         Apply input to network
         """

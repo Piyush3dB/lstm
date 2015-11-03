@@ -1,8 +1,6 @@
 import numpy as np
-
+import pdb   as pdb
 from lstm import LstmParam, LstmNetwork
-
-import pdb as pdb
 
 class ToyLossLayer:
     """
@@ -25,8 +23,7 @@ def example_0():
     # learns to repeat simple sequence from random inputs
     np.random.seed(3)
 
-    ## parameters for input data dimension and lstm cell count 
-    #Number of iterations or epochs
+    # Number of iterations or epochs
     nEpochs = 100;
 
     # Internal cell widths
@@ -34,27 +31,21 @@ def example_0():
     
     # Number of random input numbers for each output
     xSize = 50
-    
-    #concat_len = xSize + cellWidth
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
     PARAMS = LstmParam(cellWidth, xSize)
     
-    
     ## Prepare target outputs
-    y_list  = [0.5, 0.2, 0.1, 0.5]
-    #y_list = [0.12345]
-    ySize   = len(y_list) # 4
-    nCells  = ySize
+    outData  = [0.5, 0.2, 0.1, 0.5]
+    ySize   = len(outData) # 4
+    nCells  = ySize # number of unfolded cells
 
     # Initialise LSTM 
-    LSTM = LstmNetwork(PARAMS, ySize)
+    LSTM = LstmNetwork(PARAMS, nCells)
 
     # Input data
     inData = np.random.random([ySize, xSize]) # [4, 50]
-
-    #pdb.set_trace()
     
     # Train and sample at the same time
     for epoch in range(nEpochs):
@@ -64,26 +55,28 @@ def example_0():
         for ind in range(ySize):
             # Input 50 random numbers to LSTM
             x = inData[ind]
-            LSTM.forwardPass(x)
-
-
-        # Sample from model
-        state = LSTM.sample()
-        for ind in range(nCells):
-            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, y_list[ind], state[ind], y_list[ind]-state[ind])
+            LSTM.forward(x)
 
 
         # Evaluate loss function and back propagate through time
-        loss = LSTM.bptt(y_list, ToyLossLayer)
-        print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
-
+        loss = LSTM.bptt(outData, ToyLossLayer)
 
         # Apply weight update
         PARAMS.apply_diff(lr=0.1)
 
+        # Sample from model
+        testLSTM = LstmNetwork(PARAMS, nCells)
+        state = testLSTM.sample()
 
         # Clear inputs to start afresh for next epoch
         LSTM.gotoFirstCell()
+
+        #
+        # Debug logging 
+        #
+        for ind in range(nCells):
+            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, outData[ind], state[ind], outData[ind]-state[ind])
+        print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
 
 if __name__ == "__main__":
@@ -96,5 +89,5 @@ if __name__ == "__main__":
 # Epoch:  99. loss: 0.0000022563
 
 
-
+    #pdb.set_trace()
 
