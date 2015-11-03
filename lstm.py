@@ -244,7 +244,7 @@ class LstmCell:
         Sample from network cell
         """
         state = randArr(-0.1, 0.1, 1)
-        state[0] = self.state.h[0]
+        state = self.state.h[0]
 
         return state
 
@@ -327,7 +327,7 @@ class LstmNetwork():
         """
         state = randArr(-0.1, 0.1, self.nCells)
         for ind in range(self.nCells):
-            state[ind] = self.CELLS[ind].state.h[0]
+            state[ind] = self.CELLS[ind].sample()
 
         return state
 
