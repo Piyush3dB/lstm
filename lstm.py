@@ -360,7 +360,8 @@ class LstmNetwork():
 
         assert len(outData) == self.nUsedCells
         # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        #diff_s = np.zeros(self.PARAMS.cellWidth)
+        diff_s = np.zeros(self.PARAMS.cellWidth)
+        diff_h = np.zeros(self.PARAMS.cellWidth)
 
         # Get latest cell index
         idx = self.nUsedCells - 1
@@ -373,8 +374,12 @@ class LstmNetwork():
         loss    = LOSS_LAYER.loss(        pred, label )
 
         # Derivative of loss function
-        diff_h  = LOSS_LAYER.loss_derivative( pred, label )
-        diff_s  = np.zeros(self.PARAMS.cellWidth)
+        dhl  = LOSS_LAYER.loss_derivative( pred, label )
+        dh   = 0
+        diff_h = dhl + dh
+
+        ds = 0
+        diff_s = ds
 
         # Back propagation for first cell
         self.CELLS[idx].backwardPass(diff_h, diff_s)
