@@ -313,6 +313,20 @@ class LstmNetwork():
         # Current number of used cells in network
         self.nUsedCells = 0
 
+    def sample(self):
+        """
+        Sample from network cell
+        """
+
+        state = randArr(-0.1, 0.1, self.nCells)
+
+        # Sample from model
+        for ind in range(self.nCells):
+            state[ind] = self.CELLS[ind].state.h[0]
+
+        return state
+
+
     def gotoFirstCell(self):
         """
         Reset counter to go to first cell in network

@@ -35,7 +35,7 @@ def example_0():
     # Number of random input numbers for each output
     xSize = 50
     
-    concat_len = xSize + cellWidth
+    #concat_len = xSize + cellWidth
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
@@ -52,42 +52,39 @@ def example_0():
     LSTM = LstmNetwork(PARAMS, ySize)
 
     # Input data
-    input_val_arr = np.random.random([ySize, xSize]) # [4, 50]
+    inData = np.random.random([ySize, xSize]) # [4, 50]
 
     #pdb.set_trace()
     
     # Train and sample at the same time
     for epoch in range(nEpochs):
 
+
         # Input data
         for ind in range(ySize):
             # Input 50 random numbers to LSTM
-            x = input_val_arr[ind]
+            x = inData[ind]
             LSTM.forwardPass(x)
 
-            # Get state which is the prediction
-            state = LSTM.CELLS[ind].state.h[0]
-
-#            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, y_list[ind], state, y_list[ind]-state)
 
         # Sample from model
-        for ind in range(ySize):
-            # Get state which is the prediction
-            state = LSTM.CELLS[ind].state.h[0]
-
-            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, y_list[ind], state, y_list[ind]-state)
+        state = LSTM.sample()
+        for ind in range(nCells):
+            print "  Input %d rand.  Target = %1.3f. Output = %1.3f. Delta = %1.3f" % (xSize, y_list[ind], state[ind], y_list[ind]-state[ind])
 
 
-
-        # Evaluate loss function and sample
+        # Evaluate loss function and back propagate through time
         loss = LSTM.bptt(y_list, ToyLossLayer)
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
+
 
         # Apply weight update
         PARAMS.apply_diff(lr=0.1)
 
+
         # Clear inputs to start afresh for next epoch
         LSTM.gotoFirstCell()
+
 
 if __name__ == "__main__":
     example_0()
