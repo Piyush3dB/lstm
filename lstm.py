@@ -373,24 +373,30 @@ class LstmNetwork():
         # Derivative of loss function
         diff_h  = LOSS_LAYER.loss_derivative( pred, label )
 
-        # Back propagation
+        # Back propagation for first cell
         self.CELLS[idx].backwardPass(diff_h, diff_s)
 
-        ### ... following nodes also get diffs from next nodes, hence we add diffs to diff_h
-        ### we also propagate error along constant error carousel using diff_s
+        # Back propagate to every cell
         idx -= 1
         while idx >= 0: # loop through every cell
 
+            # Get target and prediction
             pred    = self.CELLS[idx].state.h
             label   = y_list[idx],
-
+            
+            # Compute loss function
             loss   += LOSS_LAYER.loss(        pred, label )
 
+            # Compute derivative of loss function
             diff_h  = LOSS_LAYER.loss_derivative( pred, label )
-            diff_h += self.CELLS[idx + 1].state.dh
 
+            # Accumulate derivative
+            diff_h += self.CELLS[idx + 1].state.dh
+            
+            # propagate error along constant error carousel
             diff_s  = self.CELLS[idx + 1].state.ds
 
+            # Backprop for this cell
             self.CELLS[idx].backwardPass(diff_h, diff_s)
             idx -= 1 
 
