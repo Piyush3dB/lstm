@@ -73,8 +73,9 @@ def example_0():
         #
 
         # Sample from new model configured with the trained weights
-        #testLSTM = LstmNetwork(PARAMS, nCells)
-        state = LSTM.sample()
+        testLSTM = LstmNetwork(PARAMS, nCells)
+        testLSTM.forward(inData)
+        state = testLSTM.sample()
 
         #pdb.set_trace()
 
