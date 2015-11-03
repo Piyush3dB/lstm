@@ -70,7 +70,7 @@ def example_0():
         # Test model and print logging information
         #
 
-        # Sample from new model configured with the same weights
+        # Sample from new model configured with the trained weights
         testLSTM = LstmNetwork(PARAMS, nCells)
         state = testLSTM.sample()
 

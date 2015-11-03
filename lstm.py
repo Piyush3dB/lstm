@@ -243,10 +243,7 @@ class LstmCell:
         """
         Sample from network cell
         """
-        state = randArr(-0.1, 0.1, 1)
-        state = self.state.h[0]
-
-        return state
+        return self.state.h[0]
 
     
     def backwardPass(self, diff_h, diff_s):
