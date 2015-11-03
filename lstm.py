@@ -350,6 +350,7 @@ class LstmNetwork():
 
 
 
+
     def bptt(self, outData, LOSS_LAYER):
         """
         Updates diffs by setting target sequence 
@@ -359,127 +360,38 @@ class LstmNetwork():
         """
 
         assert len(outData) == self.nUsedCells
-        # here s is not affecting loss due to h(t+1), hence we set equal to zero
+
+        # Initialise derivative arrays
         diff_s = np.zeros(self.PARAMS.cellWidth)
         diff_h = np.zeros(self.PARAMS.cellWidth)
-        loss = 0
 
-        # Get latest cell index
-        idx = self.nUsedCells - 1
-
-        # get data pair
-        pred    = self.CELLS[idx].state.h
-        label   = outData[idx]
-
-        # Loss function computation
-        cellLoss = LOSS_LAYER.loss(        pred, label )
-        loss     += cellLoss
-
-        # Derivative of loss function
-        dhl  = LOSS_LAYER.loss_derivative( pred, label )
-        dh   = 0
-        diff_h = dhl + dh
-
-        ds = 0
-        diff_s = ds
-
-        # Back propagation for newest cell
-        self.CELLS[idx].backwardPass(diff_h, diff_s)
-
-        # Back propagate towards oldest cell
-        for idx in reversed(range(self.nCells-1)):
-
-            # Get target and prediction
-            pred    = self.CELLS[idx].state.h
-            label   = outData[idx],
-            
-            # Compute loss function
-            cellLoss  = LOSS_LAYER.loss(        pred, label )
-            loss     += cellLoss
-
-            # Compute derivative of loss function
-            dhl    = LOSS_LAYER.loss_derivative( pred, label )
-            dh     = self.CELLS[idx + 1].state.dh
-            diff_h = dhl + dh
-            
-            # propagate error along constant error carousel
-            ds = self.CELLS[idx + 1].state.ds
-            diff_s = ds
-
-            # Backprop for this cell
-            self.CELLS[idx].backwardPass(diff_h, diff_s)
-
-        return loss
-
-
-
-    def bptt2(self, outData, LOSS_LAYER):
-        """
-        Updates diffs by setting target sequence 
-        with corresponding loss layer. 
-        Will *NOT* update parameters.  To update parameters,
-        call self.PARAMS.apply_diff() 
-        """
-
-        assert len(outData) == self.nUsedCells
-        # here s is not affecting loss due to h(t+1), hence we set equal to zero
-        diff_s = np.zeros(self.PARAMS.cellWidth)
-        diff_h = np.zeros(self.PARAMS.cellWidth)
-        loss = 0
-
-        # Get latest cell index
-        idx = self.nUsedCells - 1
-
-        # get data pair
-        pred    = self.CELLS[idx].state.h
-        label   = outData[idx]
-
-        # Loss function computation
-        cellLoss = LOSS_LAYER.loss(        pred, label )
-        loss     += cellLoss
-
-        # Derivative of loss function
-        dhl  = LOSS_LAYER.loss_derivative( pred, label )
-        dh_prev   = 0
-        diff_h = dhl + dh_prev
-
+        # Local variables
+        totalLoss = 0
+        dh_prev = 0
         ds_prev = 0
-        diff_s = ds_prev
-
-        # Back propagation for newest cell
-        self.CELLS[idx].backwardPass(diff_h, diff_s)
-
-        dh_prev = self.CELLS[idx].state.dh
-        ds_prev = self.CELLS[idx].state.ds
-
-
 
         # Back propagate towards oldest cell
-        for idx in reversed(range(self.nCells-1)):
+        for idx in reversed(range(self.nCells)):
 
             # Get target and prediction
-            pred    = self.CELLS[idx].state.h
-            label   = outData[idx],
+            pred, label = self.CELLS[idx].state.h, outData[idx]
             
-            # Compute loss function
-            cellLoss  = LOSS_LAYER.loss(        pred, label )
-            loss     += cellLoss
+            # Compute loss function and accumulate
+            cellLoss   = LOSS_LAYER.loss( pred, label )
+            totalLoss += cellLoss
 
-            # Compute derivative of loss function
-            dhl    = LOSS_LAYER.loss_derivative( pred, label )
-            #dh_prev     = self.CELLS[idx + 1].state.dh
-            diff_h = dhl + dh_prev
+            # Derivative of loss function and accumulate with previous derivative
+            dh     = LOSS_LAYER.loss_derivative( pred, label )
+            diff_h = dh + dh_prev
             
-            # propagate error along constant error carousel
-            #ds_prev = self.CELLS[idx + 1].state.ds
+            # Propagate error along constant error carousel
             diff_s = ds_prev
 
             # Backprop for this cell
             self.CELLS[idx].backwardPass(diff_h, diff_s)
 
+            # Save current derivatives for next cell
             dh_prev = self.CELLS[idx].state.dh
             ds_prev = self.CELLS[idx].state.ds
 
-
-
-        return loss
+        return totalLoss

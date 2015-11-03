@@ -57,7 +57,7 @@ def example_0():
         LSTM.forward(inData)
 
         # Evaluate loss function and back propagate through time
-        loss = LSTM.bptt2(outData, ToyLossLayer)
+        loss = LSTM.bptt(outData, ToyLossLayer)
 
         # Clear inputs to start afresh for next epoch
         LSTM.gotoFirstCell()
