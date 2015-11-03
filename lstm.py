@@ -238,7 +238,15 @@ class LstmCell:
         self.state.s = self.state.g * self.state.i + s_prev_cell * self.state.f # cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
-        
+
+    def sample(self):
+        """
+        Sample from network cell
+        """
+        state = randArr(-0.1, 0.1, 1)
+        state[0] = self.state.h[0]
+
+        return state
 
     
     def backwardPass(self, diff_h, diff_s):
@@ -353,10 +361,8 @@ class LstmNetwork():
 
     def bptt(self, outData, LOSS_LAYER):
         """
-        Updates diffs by setting target sequence 
+        Updates derivatives by setting target sequence 
         with corresponding loss layer. 
-        Will *NOT* update parameters.  To update parameters,
-        call self.PARAMS.apply_diff() 
         """
 
         assert len(outData) == self.nUsedCells
@@ -367,15 +373,15 @@ class LstmNetwork():
 
         # Local variables
         totalLoss = 0
-        dh_prev = 0
-        ds_prev = 0
+        dh_prev   = 0
+        ds_prev   = 0
 
         # Back propagate towards oldest cell
         for idx in reversed(range(self.nCells)):
 
             # Get target and prediction
             pred, label = self.CELLS[idx].state.h, outData[idx]
-            
+
             # Compute loss function and accumulate
             cellLoss   = LOSS_LAYER.loss( pred, label )
             totalLoss += cellLoss
@@ -383,7 +389,7 @@ class LstmNetwork():
             # Derivative of loss function and accumulate with previous derivative
             dh     = LOSS_LAYER.loss_derivative( pred, label )
             diff_h = dh + dh_prev
-            
+
             # Propagate error along constant error carousel
             diff_s = ds_prev
 
