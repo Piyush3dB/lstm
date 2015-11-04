@@ -90,7 +90,7 @@ class LstmParam:
         self.dBo  = np.zeros_like(self.Bo)
 
 
-    def apply_diff(self, lr = 1):
+    def weightUpdate(self, lr = 1):
         """
         Weight update
         """
@@ -336,7 +336,7 @@ class LstmNetwork():
         """
         self.nUsedCells = 0
 
-    def forward(self, x):
+    def fwdProp(self, x):
         """
         Propagate inputs through unfolded network
         """

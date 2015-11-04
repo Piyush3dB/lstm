@@ -43,7 +43,7 @@ def example_0():
     nCells   = len(outData)
 
     # Initialise LSTM 
-    LSTM = LstmNetwork(PARAMS, nCells)
+    trainLSTM = LstmNetwork(PARAMS, nCells)
 
     # Input data
     inData = np.random.random([nCells, xSize]) # [4, 50]
@@ -56,16 +56,16 @@ def example_0():
         #
 
         # Input data
-        LSTM.forward(inData)
+        trainLSTM.fwdProp(inData)
 
         # Evaluate loss function and back propagate through time
-        loss = LSTM.bptt(outData, ToyLossLayer)
+        loss = trainLSTM.bptt(outData, ToyLossLayer)
 
         # Clear inputs to start afresh for next epoch
-        LSTM.gotoFirstCell()
+        trainLSTM.gotoFirstCell()
 
         # Apply weight update
-        PARAMS.apply_diff(lr=0.1)
+        PARAMS.weightUpdate(lr=0.1)
 
 
         #
@@ -74,7 +74,7 @@ def example_0():
 
         # Sample from new model configured with the trained weights
         testLSTM = LstmNetwork(PARAMS, nCells)
-        testLSTM.forward(inData)
+        testLSTM.fwdProp(inData)
         state = testLSTM.sample()
 
         #pdb.set_trace()
@@ -85,9 +85,17 @@ def example_0():
         print "Epoch: %3d. loss: %5.10f\n" % (epoch, loss)
 
 
+def gradientCheck():
+    print "TODO"
+
+
 if __name__ == "__main__":
     example_0()
+    #gradientCheck()
 
+
+## Expected final output if still working correctly
+##
 #   Input 50 rand.  Target = 0.500. Output = 0.501. Delta = -0.001
 #   Input 50 rand.  Target = 0.200. Output = 0.200. Delta = 0.000
 #   Input 50 rand.  Target = 0.100. Output = 0.101. Delta = -0.001
