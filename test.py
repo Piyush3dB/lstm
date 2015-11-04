@@ -55,14 +55,14 @@ def example_0():
         # Train model
         #
 
-        # Input data
+        # Input data and propagate forwards through time
         trainLSTM.fwdProp(inData)
 
         # Evaluate loss function and back propagate through time
         loss = trainLSTM.bptt(outData, ToyLossLayer)
 
         # Clear inputs to start afresh for next epoch
-        trainLSTM.gotoFirstCell()
+        trainLSTM.gotoStartCell()
 
         # Apply weight update
         PARAMS.weightUpdate(lr=0.1)

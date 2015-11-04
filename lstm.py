@@ -330,7 +330,7 @@ class LstmNetwork():
         return state
 
 
-    def gotoFirstCell(self):
+    def gotoStartCell(self):
         """
         Reset counter to go to first cell in unfolded network
         """
@@ -357,14 +357,14 @@ class LstmNetwork():
 
 
 
-    def bptt(self, outData, LOSS_LAYER):
+    def bptt(self, targetData, LOSS_LAYER):
         """
         Back propagation through time.
         Updates derivatives by setting target sequence 
         with corresponding loss layer. 
         """
 
-        assert len(outData) == self.nUsedCells
+        assert len(targetData) == self.nUsedCells
 
         # Initialise derivative arrays
         diff_s = np.zeros(self.PARAMS.cellWidth)
@@ -379,7 +379,7 @@ class LstmNetwork():
         for idx in reversed(range(self.nCells)):
 
             # Get target and prediction
-            pred, label = self.CELLS[idx].state.h, outData[idx]
+            pred, label = self.CELLS[idx].state.h, targetData[idx]
 
             # Compute loss function and accumulate
             cellLoss   = LOSS_LAYER.loss( pred, label )
