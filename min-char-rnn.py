@@ -32,6 +32,272 @@ by = np.zeros((vocab_size, 1)) # output bias
 
 #pdb.set_trace()
 
+class RnnParam:
+    """
+    All LSTM network parameters
+    """
+
+    def __init__(self, cellWidth, xSize):
+
+        #print "__init__ LstmParam"
+
+        self.xSize  = xSize
+        self.cellWidth = cellWidth
+        concat_len  = xSize + cellWidth
+
+        ##
+        # Weight matrices describe the linear fransformation from 
+        # input space to output space.
+
+        # Input weights
+        self.Wgx = randArr(-0.1, 0.1, cellWidth, xSize )
+        self.Wgh = randArr(-0.1, 0.1, cellWidth, cellWidth)
+
+        # Input gate weights
+        self.Wix = randArr(-0.1, 0.1, cellWidth, xSize )
+        self.Wih = randArr(-0.1, 0.1, cellWidth, cellWidth)
+
+        # Forget gate weights
+        self.Wfx = randArr(-0.1, 0.1, cellWidth, xSize )
+        self.Wfh = randArr(-0.1, 0.1, cellWidth, cellWidth)
+
+        # Output gate weights
+        self.Wox = randArr(-0.1, 0.1, cellWidth, xSize )
+        self.Woh = randArr(-0.1, 0.1, cellWidth, cellWidth)
+
+
+
+        self.Wg  = randArr(-0.1, 0.1, cellWidth, concat_len)
+        self.Wi  = randArr(-0.1, 0.1, cellWidth, concat_len)
+        self.Wf  = randArr(-0.1, 0.1, cellWidth, concat_len)
+        self.Wo  = randArr(-0.1, 0.1, cellWidth, concat_len)
+
+        ## bias terms
+        self.Bg  = randArr(-0.1, 0.1, cellWidth)
+        self.Bi  = randArr(-0.1, 0.1, cellWidth)
+        self.Bf  = randArr(-0.1, 0.1, cellWidth)
+        self.Bo  = randArr(-0.1, 0.1, cellWidth)
+
+
+        # diffs (derivative of loss function w.r.t. all parameters)
+        self.dWg  = np.zeros_like(self.Wg )
+        self.dWgx = np.zeros_like(self.Wgx)
+        self.dWgh = np.zeros_like(self.Wgh)
+        
+        self.dWi  = np.zeros_like(self.Wi )
+        self.dWix = np.zeros_like(self.Wix)
+        self.dWih = np.zeros_like(self.Wih)
+        
+        self.dWf  = np.zeros_like(self.Wf )
+        self.dWfx = np.zeros_like(self.Wfx)
+        self.dWfh = np.zeros_like(self.Wfh)
+        
+        self.dWo  = np.zeros_like(self.Wo )
+        self.dWox = np.zeros_like(self.Wox)
+        self.dWoh = np.zeros_like(self.Woh)
+
+        # [100, 1]
+        self.dBg  = np.zeros_like(self.Bg)
+        self.dBi  = np.zeros_like(self.Bi)
+        self.dBf  = np.zeros_like(self.Bf)
+        self.dBo  = np.zeros_like(self.Bo)
+
+
+    def weightUpdate(self, lr = 1):
+        """
+        Weight update
+        """
+        # [150, 100]
+        self.Wg  -= lr * self.dWg
+        self.Wgx -= lr * self.dWgx
+        self.Wgh -= lr * self.dWgh
+        
+        self.Wi  -= lr * self.dWi
+        self.Wix -= lr * self.dWix
+        self.Wih -= lr * self.dWih
+        
+        self.Wf  -= lr * self.dWf
+        self.Wfx -= lr * self.dWfx
+        self.Wfh -= lr * self.dWfh
+        
+        self.Wo  -= lr * self.dWo
+        self.Wox -= lr * self.dWox
+        self.Woh -= lr * self.dWoh
+
+        # [100 , 1]
+        self.Bg  -= lr * self.dBg
+        self.Bi  -= lr * self.dBi
+        self.Bf  -= lr * self.dBf
+        self.Bo  -= lr * self.dBo
+        
+        # reset derivatives to zero
+
+        # [150, 100]
+        self.dWg  = np.zeros_like(self.Wg)
+        self.dWgx = np.zeros_like(self.Wgx)
+        self.dWgh = np.zeros_like(self.Wgh)
+        
+        self.dWi  = np.zeros_like(self.Wi)
+        self.dWix = np.zeros_like(self.Wix)
+        self.dWih = np.zeros_like(self.Wih)
+        
+        self.dWf  = np.zeros_like(self.Wf)
+        self.dWfx = np.zeros_like(self.Wfx)
+        self.dWfh = np.zeros_like(self.Wfh)
+        
+        self.dWo  = np.zeros_like(self.Wo)
+        self.dWox = np.zeros_like(self.Wox)
+        self.dWoh = np.zeros_like(self.Woh)
+
+        # [100, 1]
+        self.dBg = np.zeros_like(self.Bg)
+        self.dBi = np.zeros_like(self.Bi)
+        self.dBf = np.zeros_like(self.Bf)
+        self.dBo = np.zeros_like(self.Bo)
+
+
+class CellState:
+    """
+    State associated with an RNN node
+    """
+    def __init__(self, cellWidth, xSize):
+        #print "__init__ CellState"
+        # N dimensional vectors
+        self.h = np.zeros(cellWidth) # h - cell output
+        # Persistent state for derivatives
+        self.dh = np.zeros_like(self.h)
+
+
+class RnnCell:
+    """
+    A single LSTM cell composed of State and Weight parameters.
+    Function methods define the forward and backward passes
+    """
+
+    def __init__(self, PARAMS):
+
+        #print "__init__ LstmCell"
+
+        # store reference to parameters and to activations
+        self.state = CellState(PARAMS.cellWidth, PARAMS.xSize)
+        self.param = PARAMS
+
+        # non-recurrent input to node
+        self.x  = None
+        # non-recurrent input concatenated with recurrent input
+        self.xc = None
+
+        # States
+
+    def forwardPass(self, x, s_prev_cell = None, h_prev_cell = None):
+        """
+        Present data to the bottom of the Cell and compute the values as we
+          forwardPass 'upwards'.
+        Old name : bottom_data_is
+        """
+        # save data for use in backprop
+        # [100, 1]
+        self.s_prev_cell = s_prev_cell
+        self.h_prev = h_prev_cell
+
+        # concatenate x(t) and h(t-1)
+        # [150 , 1]
+        xc      = np.hstack((x,  h_prev_cell))
+        self.xc = xc
+        
+        # Apply cell equations to new weights and inputs
+        # [100, 1] here
+
+        DP = np.dot
+
+        Wg = self.param.Wg
+        Wi = self.param.Wi
+        Wf = self.param.Wf
+        Wo = self.param.Wo
+
+        Wgx = self.param.Wgx
+        Wgh = self.param.Wgh
+        Wix = self.param.Wix
+        Wih = self.param.Wih
+        Wfx = self.param.Wfx
+        Wfh = self.param.Wfh
+        Wox = self.param.Wox
+        Woh = self.param.Woh
+
+        Bg  = self.param.Bg
+        Bi  = self.param.Bi
+        Bf  = self.param.Bf
+        Bo  = self.param.Bo
+
+        #pdb.set_trace()
+        self.state.g = np.tanh( DP(Wg,xc) + Bg )  # cell input
+        self.state.i = sigmoid( DP(Wi,xc) + Bi )  #    input gate
+        self.state.f = sigmoid( DP(Wf,xc) + Bf )  #    forget gate
+        self.state.o = sigmoid( DP(Wo,xc) + Bo )  #    output gate
+        
+        self.state.s = self.state.g * self.state.i + s_prev_cell * self.state.f # cell state
+        self.state.h = self.state.s * self.state.o                         # cell output
+
+
+    def sample(self):
+        """
+        Sample from network cell
+        """
+        #print  self.state.h[0]
+        return self.state.h[0]
+
+    
+    def backwardPass(self, diff_h, diff_s):
+        # notice that diff_s is carried along the constant error carousel
+
+        # All [nMemCells ,1] == [100,1] here
+        ds = self.state.o * diff_h + diff_s
+        do = self.state.s * diff_h
+        di = self.state.g * ds
+        dg = self.state.i * ds
+        df = self.s_prev_cell  * ds
+
+        # diffs w.r.t. vector inside sigma / tanh function
+
+        # [100,1] here
+        di_input = (1. - self.state.i) * self.state.i * di 
+        df_input = (1. - self.state.f) * self.state.f * df 
+        do_input = (1. - self.state.o) * self.state.o * do 
+        dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here
+
+        # diffs w.r.t. inputs
+        # [100,150] here
+        self.param.dWi += np.outer(di_input, self.xc)
+        self.param.dWf += np.outer(df_input, self.xc)
+        self.param.dWo += np.outer(do_input, self.xc)
+        self.param.dWg += np.outer(dg_input, self.xc)
+
+        # All [nMemCells ,1] == [100,1] here
+        self.param.dBi += di_input
+        self.param.dBf += df_input       
+        self.param.dBo += do_input
+        self.param.dBg += dg_input       
+
+        # compute bottom diff
+        # [150, 1]
+        dxc = np.zeros_like(self.xc)
+        dxc += np.dot(self.param.Wi.T, di_input)
+        dxc += np.dot(self.param.Wf.T, df_input)
+        dxc += np.dot(self.param.Wo.T, do_input)
+        dxc += np.dot(self.param.Wg.T, dg_input)
+
+        # save bottom diffs
+        # [100, 1]
+        self.state.ds = ds * self.state.f
+
+        # [50 , 1]
+        self.state.dx = dxc[:self.param.xSize]
+
+        # [100  1]
+        self.state.dh = dxc[self.param.xSize:]
+
+
+
 def lossFun(inputs, targets, hprev):
   """
   inputs,targets are both list of integers.

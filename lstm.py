@@ -183,7 +183,7 @@ class LstmCell:
         self.param = PARAMS
 
         # non-recurrent input to node
-        self.x  = None
+        #self.x  = None
         # non-recurrent input concatenated with recurrent input
         self.xc = None
 
@@ -347,7 +347,7 @@ class LstmNetwork():
 
         # Forward propagate in time
         for idx in range(self.nCells):
-            
+
             self.CELLS[idx].forwardPass(x[idx], s_prev, h_prev)
 
             s_prev = self.CELLS[idx].state.s
