@@ -1,0 +1,1 @@
+ When called by the packetiser function, this function determine the ideal. When called by the packetiser function, this function determine the ideal. 
