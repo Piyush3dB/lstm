@@ -347,6 +347,7 @@ class LstmNetwork():
 
         # Forward propagate in time
         for idx in range(self.nCells):
+            
             self.CELLS[idx].forwardPass(x[idx], s_prev, h_prev)
 
             s_prev = self.CELLS[idx].state.s
@@ -359,7 +360,7 @@ class LstmNetwork():
 
     def bptt(self, targetData, LOSS_LAYER):
         """
-        Back propagation through time.
+        Back propagation through time through unfolded network.
         Updates derivatives by setting target sequence 
         with corresponding loss layer. 
         """
