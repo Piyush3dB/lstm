@@ -100,6 +100,13 @@ class RnnCell:
         
         DP = np.dot
 
+        Wxh = self.param.Wxh
+        Whh = self.param.Whh
+        Why = self.param.Why
+
+        bh = self.param.bh
+        by = self.param.by
+
         # encode in 1-of-k representation
         xs = np.zeros((vocab_size,1))
         xs[inputs] = 1
@@ -188,7 +195,6 @@ def lossFunModif(inputs, targets, hprev):
   """
   xs, hs, ys, ps = {}, {}, {}, {}
   hs[-1] = np.copy(hprev)
-  loss = 0
 
   
   ###
@@ -215,32 +221,41 @@ def lossFunModif(inputs, targets, hprev):
 
     hprev = hs[t]
     
-    #xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
-    #xs[t][inputs[t]] = 1
-
-    #hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
-    #ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
-    #ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
-    
+  ####
+  ####
+  # network loss
+  loss = 0
+  for t in xrange(len(inputs)):
     loss += -np.log(CELLS[t].ps[targets[t],0]) # softmax (cross-entropy loss)
   
+
+  ####
   ####
   # backward pass: compute gradients going backwards
   dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-  dbh, dby = np.zeros_like(bh), np.zeros_like(by)
-  dhnext = np.zeros_like(hs[0])
+  dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
+  dh_prev = np.zeros_like(hs[0])
+
+
   
   for t in reversed(xrange(len(inputs))):
-    dy     = np.copy(ps[t])
+    
+    # Compute loss
+    dy     = np.copy(CELLS[t].ps)
     dy[targets[t]] -= 1 # backprop into y
+
     dWhy  += np.dot(dy, hs[t].T)
     dby   += dy
-    dh     = np.dot(Why.T, dy) + dhnext # backprop into h
+    
+    dh     = np.dot(Why.T, dy) + dh_prev # backprop into h
     dhraw  = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
+    
     dbh   += dhraw
     dWxh  += np.dot(dhraw, xs[t].T)
     dWhh  += np.dot(dhraw, hs[t-1].T)
-    dhnext = np.dot(Whh.T, dhraw)
+
+
+    dh_prev = np.dot(Whh.T, dhraw)
 
   for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
     np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
