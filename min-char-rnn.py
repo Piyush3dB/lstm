@@ -40,57 +40,22 @@ class RnnParam:
 
 
 
-    def weightUpdate(self, lr = 1):
+    def weightUpdate(self, learning_rate = 1e-1):
         """
-        Weight update
+        Weight update using Adagrad 
         """
-        # [150, 100]
-        self.Wg  -= lr * self.dWg
-        self.Wgx -= lr * self.dWgx
-        self.Wgh -= lr * self.dWgh
-        
-        self.Wi  -= lr * self.dWi
-        self.Wix -= lr * self.dWix
-        self.Wih -= lr * self.dWih
-        
-        self.Wf  -= lr * self.dWf
-        self.Wfx -= lr * self.dWfx
-        self.Wfh -= lr * self.dWfh
-        
-        self.Wo  -= lr * self.dWo
-        self.Wox -= lr * self.dWox
-        self.Woh -= lr * self.dWoh
 
-        # [100 , 1]
-        self.Bg  -= lr * self.dBg
-        self.Bi  -= lr * self.dBi
-        self.Bf  -= lr * self.dBf
-        self.Bo  -= lr * self.dBo
+        # perform parameter update with Adagrad
+        for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
+                                      [PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby], 
+                                      [PARAM.mWxh, PARAM.mWhh, PARAM.mWhy, PARAM.mbh, PARAM.mby]):
+            mem += dparam * dparam
+            param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
         
         # reset derivatives to zero
-
-        # [150, 100]
-        self.dWg  = np.zeros_like(self.Wg)
-        self.dWgx = np.zeros_like(self.Wgx)
-        self.dWgh = np.zeros_like(self.Wgh)
-        
-        self.dWi  = np.zeros_like(self.Wi)
-        self.dWix = np.zeros_like(self.Wix)
-        self.dWih = np.zeros_like(self.Wih)
-        
-        self.dWf  = np.zeros_like(self.Wf)
-        self.dWfx = np.zeros_like(self.Wfx)
-        self.dWfh = np.zeros_like(self.Wfh)
-        
-        self.dWo  = np.zeros_like(self.Wo)
-        self.dWox = np.zeros_like(self.Wox)
-        self.dWoh = np.zeros_like(self.Woh)
-
-        # [100, 1]
-        self.dBg = np.zeros_like(self.Bg)
-        self.dBi = np.zeros_like(self.Bi)
-        self.dBf = np.zeros_like(self.Bf)
-        self.dBo = np.zeros_like(self.Bo)
+        Z = np.zeros_like
+        self.dWxh, self.dWhh, self.dWhy = Z(self.Wxh), Z(self.Whh), Z(self.Why)
+        self.dbh, self.dby = Z(self.bh), Z(self.by)
 
 
 class CellState:
@@ -354,11 +319,6 @@ bh  = PARAM.bh
 by  = PARAM.by 
 
 
-#mWxh, mWhh, mWhy = PARAM.mWxh, PARAM.mWhh, PARAM.mWhy
-#mbh, mby         = PARAM.mbh, PARAM.mby
-
-
-
 
 
 
@@ -372,8 +332,8 @@ while keepGoing:
   if p+seq_length+1 >= len(data) or n == 0: 
     hprev = np.zeros((hidden_size,1)) # reset RNN memory
     p = 0 # go from start of data
-  inputs = [char_to_ix[ch] for ch in data[p:p+seq_length]]
-  targets = [char_to_ix[ch] for ch in data[p+1:p+seq_length+1]]
+  inputs  = [char_to_ix[ch] for ch in data[ p  :p+seq_length   ]]
+  targets = [char_to_ix[ch] for ch in data[ p+1:p+seq_length+1 ]]
 
   # sample from the model now and then
   if n % 100 == 0:
@@ -382,16 +342,13 @@ while keepGoing:
     print '----\n %s \n----' % (txt, )
 
   # forward seq_length characters through the net and fetch gradient
-  loss, dWxh, dWhh, dWhy, dbh, dby, hprev = lossFun(inputs, targets, hprev)
+  loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = lossFun(inputs, targets, hprev)
   smooth_loss = smooth_loss * 0.999 + loss * 0.001
   if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss) # print progress
   
-  # perform parameter update with Adagrad
-  for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
-                                [dWxh, dWhh, dWhy, dbh, dby], 
-                                [PARAM.mWxh, PARAM.mWhh, PARAM.mWhy, PARAM.mbh, PARAM.mby]):
-    mem += dparam * dparam
-    param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
+  # Adagrad weight update
+  PARAM.weightUpdate()
+
 
   p += seq_length # move data pointer
   n += 1 # iteration counter 
