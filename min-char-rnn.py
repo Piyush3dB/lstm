@@ -91,7 +91,7 @@ class RnnCell:
 
         # States
 
-    def forwardPass(self, inputs, h_prev_cell = None):
+    def forwardPass(self, inputs, hprev = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -99,25 +99,23 @@ class RnnCell:
         """
         
         DP = np.dot
-        
-        # save data for use in backprop
-        # [100, 1]
-        self.h_prev = h_prev_cell
-        hs = np.copy(self.hprev)
-        hprev = np.copy(self.hprev)
 
         # encode in 1-of-k representation
         xs = np.zeros((vocab_size,1))
         xs[inputs] = 1
 
         # hidden state
-        hs = np.tanh(DP(Wxh, xs) + DP(Whh, hprev) + bh)
+        self.hs = np.tanh(DP(Wxh, xs) + DP(Whh, hprev) + bh)
         
         # unnormalized log probabilities for next chars
-        ys = DP(Why, hs) + by
+        ys = DP(Why, self.hs) + by
 
         # probabilities for next chars
-        ps = np.exp(ys) / np.sum(np.exp(ys))
+        self.ps = np.exp(ys) / np.sum(np.exp(ys))
+
+        self.xs = xs
+
+
 
 
 
@@ -191,19 +189,40 @@ def lossFunModif(inputs, targets, hprev):
   xs, hs, ys, ps = {}, {}, {}, {}
   hs[-1] = np.copy(hprev)
   loss = 0
+
   
+  ###
+  ###
+  #Create RNN network of cells
+  CELLS = [];
+  for _ in xrange(len(inputs)):
+    newCell = RnnCell(PARAM)
+    CELLS.append(newCell)
+    #print 'appended'
+
+
+  
+  ####
   ####
   # forward pass
   for t in xrange(len(inputs)):
-    
-    xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
-    xs[t][inputs[t]] = 1
 
-    hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
-    ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
-    ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
+    CELLS[t].forwardPass(inputs[t], hprev)
+
+    xs[t] = CELLS[t].xs
+    hs[t] = CELLS[t].hs
+    ps[t] = CELLS[t].ps
+
+    hprev = hs[t]
     
-    loss += -np.log(ps[t][targets[t],0]) # softmax (cross-entropy loss)
+    #xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
+    #xs[t][inputs[t]] = 1
+
+    #hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
+    #ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
+    #ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
+    
+    loss += -np.log(CELLS[t].ps[targets[t],0]) # softmax (cross-entropy loss)
   
   ####
   # backward pass: compute gradients going backwards
@@ -225,6 +244,8 @@ def lossFunModif(inputs, targets, hprev):
 
   for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
     np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
+
+  #pdb.set_trace()
   
   return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
 
@@ -239,7 +260,7 @@ def lossFun(inputs, targets, hprev):
   xs, hs, ys, ps = {}, {}, {}, {}
   hs[-1] = np.copy(hprev)
   loss = 0
-  
+
   ####
   # forward pass
   for t in xrange(len(inputs)):
@@ -324,6 +345,8 @@ def gradCheck(inputs, target, hprev):
 
 
 ###### Main function here
+###### Main function here
+###### Main function here
 
 
 np.random.seed(3)
@@ -361,6 +384,7 @@ smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
 keepGoing = True
 
 
+# Main loop
 while keepGoing:
 
     # prepare inputs (we're sweeping from left to right in steps seq_length long)
