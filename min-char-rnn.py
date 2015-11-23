@@ -7,100 +7,37 @@ import numpy as np
 from random import uniform
 import pdb
 
-np.random.seed(3)
-
-# data I/O
-data = open('input2.txt', 'r').read() # should be simple plain text file
-chars = list(set(data))
-
-data_size, vocab_size = len(data), len(chars)
-print 'data has %d characters, %d unique.' % (data_size, vocab_size)
-char_to_ix = { ch:i for i,ch in enumerate(chars) }
-ix_to_char = { i:ch for i,ch in enumerate(chars) }
-
-# hyperparameters
-hidden_size = 100 # size of hidden layer of neurons
-seq_length = 25 # number of steps to unroll the RNN for
-learning_rate = 1e-1
-
-# model parameters
-Wxh = np.random.randn(hidden_size, vocab_size)*0.01 # input to hidden
-Whh = np.random.randn(hidden_size, hidden_size)*0.01 # hidden to hidden
-Why = np.random.randn(vocab_size, hidden_size)*0.01 # hidden to output
-bh = np.zeros((hidden_size, 1)) # hidden bias
-by = np.zeros((vocab_size, 1)) # output bias
-
-#pdb.set_trace()
 
 class RnnParam:
     """
     All LSTM network parameters
     """
 
-    def __init__(self, cellWidth, xSize):
+    def __init__(self, hidden_size, vocab_size):
 
         #print "__init__ LstmParam"
 
-        self.xSize  = xSize
-        self.cellWidth = cellWidth
-        concat_len  = xSize + cellWidth
+        self.hidden_size = hidden_size
+        self.vocab_size  = vocab_size
 
         ##
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
-
-        # Input weights
-        self.Wgx = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Wgh = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-        # Input gate weights
-        self.Wix = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Wih = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-        # Forget gate weights
-        self.Wfx = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Wfh = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-        # Output gate weights
-        self.Wox = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Woh = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-
-
-        self.Wg  = randArr(-0.1, 0.1, cellWidth, concat_len)
-        self.Wi  = randArr(-0.1, 0.1, cellWidth, concat_len)
-        self.Wf  = randArr(-0.1, 0.1, cellWidth, concat_len)
-        self.Wo  = randArr(-0.1, 0.1, cellWidth, concat_len)
-
-        ## bias terms
-        self.Bg  = randArr(-0.1, 0.1, cellWidth)
-        self.Bi  = randArr(-0.1, 0.1, cellWidth)
-        self.Bf  = randArr(-0.1, 0.1, cellWidth)
-        self.Bo  = randArr(-0.1, 0.1, cellWidth)
-
+        np.random.seed(3)
+        self.Wxh = np.random.randn(hidden_size , vocab_size )*0.01 # input to hidden
+        self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
+        self.Why = np.random.randn(vocab_size  , hidden_size)*0.01 # hidden to output
+        self.bh  = np.zeros((hidden_size , 1)) # hidden bias
+        self.by  = np.zeros((vocab_size  , 1)) # output bias
 
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWg  = np.zeros_like(self.Wg )
-        self.dWgx = np.zeros_like(self.Wgx)
-        self.dWgh = np.zeros_like(self.Wgh)
-        
-        self.dWi  = np.zeros_like(self.Wi )
-        self.dWix = np.zeros_like(self.Wix)
-        self.dWih = np.zeros_like(self.Wih)
-        
-        self.dWf  = np.zeros_like(self.Wf )
-        self.dWfx = np.zeros_like(self.Wfx)
-        self.dWfh = np.zeros_like(self.Wfh)
-        
-        self.dWo  = np.zeros_like(self.Wo )
-        self.dWox = np.zeros_like(self.Wox)
-        self.dWoh = np.zeros_like(self.Woh)
+        self.dWxh, self.dWhh, self.dWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+        self.dbh, self.dby = np.zeros_like(self.bh), np.zeros_like(self.by)
 
-        # [100, 1]
-        self.dBg  = np.zeros_like(self.Bg)
-        self.dBi  = np.zeros_like(self.Bi)
-        self.dBf  = np.zeros_like(self.Bf)
-        self.dBo  = np.zeros_like(self.Bo)
+        # Memory variables for AdaGrad
+        self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+        self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad
+
 
 
     def weightUpdate(self, lr = 1):
@@ -189,7 +126,7 @@ class RnnCell:
 
         # States
 
-    def forwardPass(self, x, s_prev_cell = None, h_prev_cell = None):
+    def forwardPass(self, x, h_prev_cell = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -197,7 +134,6 @@ class RnnCell:
         """
         # save data for use in backprop
         # [100, 1]
-        self.s_prev_cell = s_prev_cell
         self.h_prev = h_prev_cell
 
         # concatenate x(t) and h(t-1)
@@ -307,31 +243,40 @@ def lossFun(inputs, targets, hprev):
   xs, hs, ys, ps = {}, {}, {}, {}
   hs[-1] = np.copy(hprev)
   loss = 0
+  
+  ####
   # forward pass
   for t in xrange(len(inputs)):
     xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
+    
     xs[t][inputs[t]] = 1
     hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
     ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
     ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
+    
     loss += -np.log(ps[t][targets[t],0]) # softmax (cross-entropy loss)
+  
+  ####
   # backward pass: compute gradients going backwards
   dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
   dbh, dby = np.zeros_like(bh), np.zeros_like(by)
   dhnext = np.zeros_like(hs[0])
+  
   for t in reversed(xrange(len(inputs))):
-    dy = np.copy(ps[t])
+    dy     = np.copy(ps[t])
     dy[targets[t]] -= 1 # backprop into y
-    dWhy += np.dot(dy, hs[t].T)
-    dby += dy
-    dh = np.dot(Why.T, dy) + dhnext # backprop into h
-    dhraw = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
-    dbh += dhraw
-    dWxh += np.dot(dhraw, xs[t].T)
-    dWhh += np.dot(dhraw, hs[t-1].T)
+    dWhy  += np.dot(dy, hs[t].T)
+    dby   += dy
+    dh     = np.dot(Why.T, dy) + dhnext # backprop into h
+    dhraw  = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
+    dbh   += dhraw
+    dWxh  += np.dot(dhraw, xs[t].T)
+    dWhh  += np.dot(dhraw, hs[t-1].T)
     dhnext = np.dot(Whh.T, dhraw)
+
   for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
     np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
+  
   return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
 
 def sample(h, seed_ix, n):
@@ -380,9 +325,45 @@ def gradCheck(inputs, target, hprev):
       # rel_error should be on order of 1e-7 or less
 
 
+
+###### Main function here
+
+
+np.random.seed(3)
+
+# data I/O
+data = open('input2.txt', 'r').read() # should be simple plain text file
+chars = list(set(data))
+
+data_size, vocab_size = len(data), len(chars)
+print 'data has %d characters, %d unique.' % (data_size, vocab_size)
+char_to_ix = { ch:i for i,ch in enumerate(chars) }
+ix_to_char = { i:ch for i,ch in enumerate(chars) }
+
+# hyperparameters
+hidden_size = 100 # size of hidden layer of neurons
+seq_length = 25 # number of steps to unroll the RNN for
+learning_rate = 1e-1
+
+# model parameters
+PARAM = RnnParam(hidden_size, vocab_size)
+Wxh = PARAM.Wxh
+Whh = PARAM.Whh
+Why = PARAM.Why
+bh  = PARAM.bh 
+by  = PARAM.by 
+
+
+#mWxh, mWhh, mWhy = PARAM.mWxh, PARAM.mWhh, PARAM.mWhy
+#mbh, mby         = PARAM.mbh, PARAM.mby
+
+
+
+
+
+
+
 n, p = 0, 0
-mWxh, mWhh, mWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-mbh, mby = np.zeros_like(bh), np.zeros_like(by) # memory variables for Adagrad
 smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
 
 keepGoing = True
@@ -408,7 +389,7 @@ while keepGoing:
   # perform parameter update with Adagrad
   for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
                                 [dWxh, dWhh, dWhy, dbh, dby], 
-                                [mWxh, mWhh, mWhy, mbh, mby]):
+                                [PARAM.mWxh, PARAM.mWhh, PARAM.mWhy, PARAM.mbh, PARAM.mby]):
     mem += dparam * dparam
     param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
 
@@ -418,6 +399,8 @@ while keepGoing:
   if (n == 300):
     keepGoing = False
 
+
+#pdb.set_trace()
 
 # ----
 # iter 200, loss: 77.081298
