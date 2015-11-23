@@ -81,7 +81,7 @@ class RnnCell:
         #print "__init__ LstmCell"
 
         # store reference to parameters and to activations
-        self.state = CellState(PARAMS.cellWidth, PARAMS.xSize)
+        self.state = CellState(PARAMS.hidden_size, PARAMS.vocab_size)
         self.param = PARAMS
 
         # non-recurrent input to node
@@ -91,53 +91,34 @@ class RnnCell:
 
         # States
 
-    def forwardPass(self, x, h_prev_cell = None):
+    def forwardPass(self, inputs, h_prev_cell = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
         Old name : bottom_data_is
         """
+        
+        DP = np.dot
+        
         # save data for use in backprop
         # [100, 1]
         self.h_prev = h_prev_cell
+        hs = np.copy(self.hprev)
+        hprev = np.copy(self.hprev)
 
-        # concatenate x(t) and h(t-1)
-        # [150 , 1]
-        xc      = np.hstack((x,  h_prev_cell))
-        self.xc = xc
+        # encode in 1-of-k representation
+        xs = np.zeros((vocab_size,1))
+        xs[inputs] = 1
+
+        # hidden state
+        hs = np.tanh(DP(Wxh, xs) + DP(Whh, hprev) + bh)
         
-        # Apply cell equations to new weights and inputs
-        # [100, 1] here
+        # unnormalized log probabilities for next chars
+        ys = DP(Why, hs) + by
 
-        DP = np.dot
+        # probabilities for next chars
+        ps = np.exp(ys) / np.sum(np.exp(ys))
 
-        Wg = self.param.Wg
-        Wi = self.param.Wi
-        Wf = self.param.Wf
-        Wo = self.param.Wo
-
-        Wgx = self.param.Wgx
-        Wgh = self.param.Wgh
-        Wix = self.param.Wix
-        Wih = self.param.Wih
-        Wfx = self.param.Wfx
-        Wfh = self.param.Wfh
-        Wox = self.param.Wox
-        Woh = self.param.Woh
-
-        Bg  = self.param.Bg
-        Bi  = self.param.Bi
-        Bf  = self.param.Bf
-        Bo  = self.param.Bo
-
-        #pdb.set_trace()
-        self.state.g = np.tanh( DP(Wg,xc) + Bg )  # cell input
-        self.state.i = sigmoid( DP(Wi,xc) + Bi )  #    input gate
-        self.state.f = sigmoid( DP(Wf,xc) + Bf )  #    forget gate
-        self.state.o = sigmoid( DP(Wo,xc) + Bo )  #    output gate
-        
-        self.state.s = self.state.g * self.state.i + s_prev_cell * self.state.f # cell state
-        self.state.h = self.state.s * self.state.o                         # cell output
 
 
     def sample(self):
@@ -198,6 +179,56 @@ class RnnCell:
         self.state.dh = dxc[self.param.xSize:]
 
 
+#    cell = RnnCell(inputs, h_prev_cell)
+
+
+def lossFunModif(inputs, targets, hprev):
+  """
+  inputs,targets are both list of integers.
+  hprev is Hx1 array of initial hidden state
+  returns the loss, gradients on model parameters, and last hidden state
+  """
+  xs, hs, ys, ps = {}, {}, {}, {}
+  hs[-1] = np.copy(hprev)
+  loss = 0
+  
+  ####
+  # forward pass
+  for t in xrange(len(inputs)):
+    
+    xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
+    xs[t][inputs[t]] = 1
+
+    hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
+    ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
+    ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
+    
+    loss += -np.log(ps[t][targets[t],0]) # softmax (cross-entropy loss)
+  
+  ####
+  # backward pass: compute gradients going backwards
+  dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
+  dbh, dby = np.zeros_like(bh), np.zeros_like(by)
+  dhnext = np.zeros_like(hs[0])
+  
+  for t in reversed(xrange(len(inputs))):
+    dy     = np.copy(ps[t])
+    dy[targets[t]] -= 1 # backprop into y
+    dWhy  += np.dot(dy, hs[t].T)
+    dby   += dy
+    dh     = np.dot(Why.T, dy) + dhnext # backprop into h
+    dhraw  = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
+    dbh   += dhraw
+    dWxh  += np.dot(dhraw, xs[t].T)
+    dWhh  += np.dot(dhraw, hs[t-1].T)
+    dhnext = np.dot(Whh.T, dhraw)
+
+  for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
+    np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
+  
+  return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
+
+
 
 def lossFun(inputs, targets, hprev):
   """
@@ -212,9 +243,10 @@ def lossFun(inputs, targets, hprev):
   ####
   # forward pass
   for t in xrange(len(inputs)):
-    xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
     
+    xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
     xs[t][inputs[t]] = 1
+
     hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
     ys[t] = np.dot(Why, hs[t]) + by # unnormalized log probabilities for next chars
     ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
@@ -297,7 +329,7 @@ def gradCheck(inputs, target, hprev):
 np.random.seed(3)
 
 # data I/O
-data = open('input2.txt', 'r').read() # should be simple plain text file
+data  = open('input2.txt', 'r').read() # should be simple plain text file
 chars = list(set(data))
 
 data_size, vocab_size = len(data), len(chars)
@@ -327,37 +359,51 @@ n, p = 0, 0
 smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
 
 keepGoing = True
+
+
 while keepGoing:
-  # prepare inputs (we're sweeping from left to right in steps seq_length long)
-  if p+seq_length+1 >= len(data) or n == 0: 
-    hprev = np.zeros((hidden_size,1)) # reset RNN memory
-    p = 0 # go from start of data
-  inputs  = [char_to_ix[ch] for ch in data[ p  :p+seq_length   ]]
-  targets = [char_to_ix[ch] for ch in data[ p+1:p+seq_length+1 ]]
 
-  # sample from the model now and then
-  if n % 100 == 0:
-    sample_ix = sample(hprev, inputs[0], 200)
-    txt = ''.join(ix_to_char[ix] for ix in sample_ix)
-    print '----\n %s \n----' % (txt, )
+    # prepare inputs (we're sweeping from left to right in steps seq_length long)
+    if p+seq_length+1 >= len(data) or n == 0: 
+        hprev = np.zeros((hidden_size,1)) # reset RNN memory
+        p = 0 # go from start of data
 
-  # forward seq_length characters through the net and fetch gradient
-  loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = lossFun(inputs, targets, hprev)
-  smooth_loss = smooth_loss * 0.999 + loss * 0.001
-  if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss) # print progress
-  
-  # Adagrad weight update
-  PARAM.weightUpdate()
+    # Prepare inputs and targets
+    inputs  = [char_to_ix[ch] for ch in data[ p  :p+seq_length   ]]
+    targets = [char_to_ix[ch] for ch in data[ p+1:p+seq_length+1 ]]
+
+    # sample from the model now and then
+    if n % 100 == 0:
+        sample_ix = sample(hprev, inputs[0], 200)
+        txt = ''.join(ix_to_char[ix] for ix in sample_ix)
+        print '----\n %s \n----' % (txt, )
+
+    # forward seq_length characters through the net and fetch gradient
+    #pdb.set_trace()
+    loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = lossFunModif(inputs, targets, hprev)
+    
+    # Smooth and log message print
+    smooth_loss = smooth_loss * 0.999 + loss * 0.001
+    if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss) # print progress
+    
+    # Adagrad weight update
+    PARAM.weightUpdate()
 
 
-  p += seq_length # move data pointer
-  n += 1 # iteration counter 
+    # move data pointer
+    p += seq_length
 
-  if (n == 300):
-    keepGoing = False
+    # iteration counter 
+    n += 1
+
+    # Terminate
+    if (n == 300):
+        keepGoing = False
 
 
-#pdb.set_trace()
+
+
+#
 
 # ----
 # iter 200, loss: 77.081298
