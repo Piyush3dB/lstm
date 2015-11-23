@@ -123,65 +123,22 @@ class RnnCell:
         self.xs = xs
 
 
-
-
-
-    def sample(self):
-        """
-        Sample from network cell
-        """
-        #print  self.state.h[0]
-        return self.state.h[0]
-
     
-    def backwardPass(self, diff_h, diff_s):
+    def backwardPass(self, dy, dhprev):
         # notice that diff_s is carried along the constant error carousel
 
-        # All [nMemCells ,1] == [100,1] here
-        ds = self.state.o * diff_h + diff_s
-        do = self.state.s * diff_h
-        di = self.state.g * ds
-        dg = self.state.i * ds
-        df = self.s_prev_cell  * ds
 
-        # diffs w.r.t. vector inside sigma / tanh function
+        dWhyC = np.dot(dy, self.hs.T)
 
-        # [100,1] here
-        di_input = (1. - self.state.i) * self.state.i * di 
-        df_input = (1. - self.state.f) * self.state.f * df 
-        do_input = (1. - self.state.o) * self.state.o * do 
-        dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here
+        dh     = np.dot(self.Why.T, dy) + dhprev
+        
+        dhraw  = (1 - self.hs * self.hs) * dh
 
-        # diffs w.r.t. inputs
-        # [100,150] here
-        self.param.dWi += np.outer(di_input, self.xc)
-        self.param.dWf += np.outer(df_input, self.xc)
-        self.param.dWo += np.outer(do_input, self.xc)
-        self.param.dWg += np.outer(dg_input, self.xc)
+        dWxhC  = np.dot(dhraw, self.xs.T)
+        dWhhC  = np.dot(dhraw, hs[t-1].T)
 
-        # All [nMemCells ,1] == [100,1] here
-        self.param.dBi += di_input
-        self.param.dBf += df_input       
-        self.param.dBo += do_input
-        self.param.dBg += dg_input       
+        dhprev = np.dot(self.Whh.T, dhraw)
 
-        # compute bottom diff
-        # [150, 1]
-        dxc = np.zeros_like(self.xc)
-        dxc += np.dot(self.param.Wi.T, di_input)
-        dxc += np.dot(self.param.Wf.T, df_input)
-        dxc += np.dot(self.param.Wo.T, do_input)
-        dxc += np.dot(self.param.Wg.T, dg_input)
-
-        # save bottom diffs
-        # [100, 1]
-        self.state.ds = ds * self.state.f
-
-        # [50 , 1]
-        self.state.dx = dxc[:self.param.xSize]
-
-        # [100  1]
-        self.state.dh = dxc[self.param.xSize:]
 
 
 #    cell = RnnCell(inputs, h_prev_cell)
@@ -234,8 +191,7 @@ def lossFunModif(inputs, targets, hprev):
   # backward pass: compute gradients going backwards
   dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
   dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
-  dh_prev = np.zeros_like(hs[0])
-
+  dhprev = np.zeros_like(hs[0])
 
   
   for t in reversed(xrange(len(inputs))):
@@ -244,18 +200,19 @@ def lossFunModif(inputs, targets, hprev):
     dy     = np.copy(CELLS[t].ps)
     dy[targets[t]] -= 1 # backprop into y
 
-    dWhy  += np.dot(dy, hs[t].T)
+    dWhyC = np.dot(dy, hs[t].T)
+    dh     = np.dot(Why.T, dy) + dhprev
+    dhraw  = (1 - hs[t] * hs[t]) * dh
+    dWxhC  = np.dot(dhraw, xs[t].T)
+    dWhhC  = np.dot(dhraw, hs[t-1].T)
+    dhprev = np.dot(Whh.T, dhraw)
+
+    # Accumulations
+    dWxh  += dWxhC
+    dWhh  += dWhhC
+    dWhy  += dWhyC
     dby   += dy
-    
-    dh     = np.dot(Why.T, dy) + dh_prev # backprop into h
-    dhraw  = (1 - hs[t] * hs[t]) * dh # backprop through tanh nonlinearity
-    
     dbh   += dhraw
-    dWxh  += np.dot(dhraw, xs[t].T)
-    dWhh  += np.dot(dhraw, hs[t-1].T)
-
-
-    dh_prev = np.dot(Whh.T, dhraw)
 
   for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
     np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
