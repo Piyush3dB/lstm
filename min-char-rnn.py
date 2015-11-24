@@ -191,7 +191,7 @@ def lossFunModif(inputs, targets, hprev):
   # backward pass: compute gradients going backwards
   dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
   dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
-  dhprev = np.zeros_like(hs[0])
+  dh_1 = np.zeros_like(hs[0])
 
   
   for t in reversed(xrange(len(inputs))):
@@ -201,11 +201,11 @@ def lossFunModif(inputs, targets, hprev):
     dy[targets[t]] -= 1 # backprop into y
 
     dWhyC = np.dot(dy, hs[t].T)
-    dh     = np.dot(Why.T, dy) + dhprev
+    dh     = np.dot(Why.T, dy) + dh_1
     dhraw  = (1 - hs[t] * hs[t]) * dh
     dWxhC  = np.dot(dhraw, xs[t].T)
     dWhhC  = np.dot(dhraw, hs[t-1].T)
-    dhprev = np.dot(Whh.T, dhraw)
+    dh_1 = np.dot(Whh.T, dhraw)
 
     # Accumulations
     dWxh  += dWxhC
