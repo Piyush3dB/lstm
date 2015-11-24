@@ -124,20 +124,35 @@ class RnnCell:
 
 
     
-    def backwardPass(self, dy, dhprev):
+    def backwardPass(self, dy, dh_1, hs_1):
         # notice that diff_s is carried along the constant error carousel
 
+        DP = np.dot
 
-        dWhyC = np.dot(dy, self.hs.T)
+        Wxh = self.param.Wxh
+        Whh = self.param.Whh
+        Why = self.param.Why
 
-        dh     = np.dot(self.Why.T, dy) + dhprev
+        dWhy  = np.dot(dy, self.hs.T)
+
+        dh    = np.dot(Why.T, dy) + dh_1
         
-        dhraw  = (1 - self.hs * self.hs) * dh
+        dhraw = (1 - self.hs * self.hs) * dh
 
-        dWxhC  = np.dot(dhraw, self.xs.T)
-        dWhhC  = np.dot(dhraw, hs[t-1].T)
+        dWxh  = DP(dhraw, self.xs.T)
+        dWhh  = DP(dhraw, hs_1.T)
 
-        dhprev = np.dot(self.Whh.T, dhraw)
+        dh_1  = DP(Whh.T, dhraw)
+
+        dby = dy
+
+        self.dWxh = dWxh
+        self.dWhh = dWhh
+        self.dWhy = dWhy
+        self.dby  = dby 
+        self.dbh  = dhraw
+
+        self.dh_1 = dh_1
 
 
 
@@ -200,19 +215,19 @@ def lossFunModif(inputs, targets, hprev):
     dy     = np.copy(CELLS[t].ps)
     dy[targets[t]] -= 1 # backprop into y
 
-    dWhyC = np.dot(dy, hs[t].T)
-    dh     = np.dot(Why.T, dy) + dh_1
-    dhraw  = (1 - hs[t] * hs[t]) * dh
-    dWxhC  = np.dot(dhraw, xs[t].T)
-    dWhhC  = np.dot(dhraw, hs[t-1].T)
-    dh_1 = np.dot(Whh.T, dhraw)
+    hs_1 = hs[t-1]
+    CELLS[t].backwardPass(dy, dh_1, hs_1)
+
+    dh_1 = CELLS[t].dh_1
+
+
 
     # Accumulations
-    dWxh  += dWxhC
-    dWhh  += dWhhC
-    dWhy  += dWhyC
-    dby   += dy
-    dbh   += dhraw
+    dWxh  += CELLS[t].dWxh
+    dWhh  += CELLS[t].dWhh
+    dWhy  += CELLS[t].dWhy
+    dby   += CELLS[t].dby
+    dbh   += CELLS[t].dbh
 
   for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
     np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
