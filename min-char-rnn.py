@@ -187,9 +187,9 @@ def lossFunModif(inputs, targets, hprev):
 
     CELLS[t].forwardPass(inputs[t], hprev)
 
-    xs[t] = CELLS[t].xs
+    #xs[t] = CELLS[t].xs
     hs[t] = CELLS[t].hs
-    ps[t] = CELLS[t].ps
+    #ps[t] = CELLS[t].ps
 
     hprev = hs[t]
     
