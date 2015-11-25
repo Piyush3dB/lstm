@@ -82,7 +82,7 @@ class RnnCell:
 
         # store reference to parameters and to activations
         self.state = CellState(PARAMS.hidden_size, PARAMS.vocab_size)
-        self.param = PARAMS
+        #self.param = PARAMS
 
         # non-recurrent input to node
         self.x  = None
@@ -91,7 +91,7 @@ class RnnCell:
 
         # States
 
-    def forwardPass(self, inputs, hprev = None):
+    def forwardPass(self, inputs, hprev, weights):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -100,12 +100,12 @@ class RnnCell:
         
         DP = np.dot
 
-        Wxh = self.param.Wxh
-        Whh = self.param.Whh
-        Why = self.param.Why
+        Wxh = weights.Wxh
+        Whh = weights.Whh
+        Why = weights.Why
 
-        bh = self.param.bh
-        by = self.param.by
+        bh = weights.bh
+        by = weights.by
 
         # encode in 1-of-k representation
         xs = np.zeros((vocab_size,1))
@@ -124,14 +124,14 @@ class RnnCell:
 
 
     
-    def backwardPass(self, dy, dh_1, hs_1):
+    def backwardPass(self, dy, dh_1, hs_1, weights):
         # notice that diff_s is carried along the constant error carousel
 
         DP = np.dot
 
-        Wxh = self.param.Wxh
-        Whh = self.param.Whh
-        Why = self.param.Why
+        Wxh = weights.Wxh
+        Whh = weights.Whh
+        Why = weights.Why
 
         dWhy  = np.dot(dy, self.hs.T)
 
@@ -163,11 +163,26 @@ class Rnn:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS):
+    def __init__(self, PARAMS, seq_length):
 
         self.name   = 'rnn'
         self.PARAMS = PARAMS
-    
+        self.seq_length = seq_length
+
+        #Create RNN network of cells
+        self.CELLS = [];
+        for _ in xrange(seq_length):
+            newCell = RnnCell(PARAM)
+            self.CELLS.append(newCell)
+
+
+    def resetGrads(self):
+
+        self.PARAMS.dWxh  = 0
+        self.PARAMS.dWhh  = 0
+        self.PARAMS.dWhy  = 0
+        self.PARAMS.dby   = 0
+        self.PARAMS.dbh   = 0
 
     def lossFunModif(self, inputs, targets, hprev):
         """
@@ -183,12 +198,7 @@ class Rnn:
         
         ###
         ###
-        #Create RNN network of cells
-        CELLS = [];
-        for _ in xrange(len(inputs)):
-          newCell = RnnCell(PARAM)
-          CELLS.append(newCell)
-          #print 'appended'
+
 
 
         
@@ -196,10 +206,10 @@ class Rnn:
         # forward pass
         for t in xrange(len(inputs)):
 
-          CELLS[t].forwardPass(inputs[t], hprev)
+          self.CELLS[t].forwardPass(inputs[t], hprev, self.PARAMS)
 
-          hs[t] = CELLS[t].hs
-          hprev = CELLS[t].hs
+          hs[t] = self.CELLS[t].hs
+          hprev = self.CELLS[t].hs
           
 
         ####
@@ -207,34 +217,34 @@ class Rnn:
         loss = 0
         for t in xrange(len(inputs)):
           # softmax (cross-entropy loss)
-          thisLoss = -np.log(CELLS[t].ps[ targets[t],0 ]) 
+          thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
           loss += thisLoss
         
 
         ####
         # backward pass: compute gradients going backwards
-        dh_1 = np.zeros_like(CELLS[0].hs)
+        dh_1 = np.zeros_like(self.CELLS[0].hs)
         
         for t in reversed(xrange(len(inputs))):
           # Derivative calculation
-          dy     = np.copy(CELLS[t].ps)
+          dy     = np.copy(self.CELLS[t].ps)
           dy[targets[t]] -= 1 # backprop into y
 
           # Previous hidden state
           hs_1 = hs[t-1]
 
           # Back prop for this cell
-          CELLS[t].backwardPass(dy, dh_1, hs_1)
+          self.CELLS[t].backwardPass(dy, dh_1, hs_1, self.PARAMS)
 
           # Hidden delta for this cell
-          dh_1 = CELLS[t].dh_1
+          dh_1 = self.CELLS[t].dh_1
 
           # Accumulators
-          dWxh  += CELLS[t].dWxh
-          dWhh  += CELLS[t].dWhh
-          dWhy  += CELLS[t].dWhy
-          dby   += CELLS[t].dby
-          dbh   += CELLS[t].dbh
+          dWxh  += self.CELLS[t].dWxh
+          dWhh  += self.CELLS[t].dWhh
+          dWhy  += self.CELLS[t].dWhy
+          dby   += self.CELLS[t].dby
+          dbh   += self.CELLS[t].dbh
 
 
         # clip to mitigate exploding gradients
@@ -380,7 +390,7 @@ smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
 keepGoing = True
 
 
-rnnObj = Rnn(PARAM)
+rnnObj = Rnn(PARAM, seq_length)
 
 # Main loop
 while keepGoing:
@@ -403,7 +413,8 @@ while keepGoing:
     # forward seq_length characters through the net and fetch gradient
     #pdb.set_trace()
     loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = rnnObj.lossFunModif(inputs, targets, hprev)
-    
+    #rnnObj.resetGrads()
+
     # Smooth and log message print
     smooth_loss = smooth_loss * 0.999 + loss * 0.001
     if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss) # print progress
