@@ -7,28 +7,82 @@ import numpy as np
 from random import uniform
 import pdb
 
+# vocab_size == input_size
+
+class networkWeights:
+    """
+    Weights and update function
+    """
+
+
+    def __init__(self, hidden_size, input_size):
+
+        #print "__init__ LstmParam"
+
+        self.hidden_size = hidden_size
+        self.input_size  = input_size
+
+        ##
+        # Weight matrices describe the linear fransformation from 
+        # input space to output space.
+        np.random.seed(3)
+        self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
+        self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
+        self.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
+        self.bh  = np.zeros((hidden_size , 1)) # hidden bias
+        self.by  = np.zeros((input_size  , 1)) # output bias
+
+        # diffs (derivative of loss function w.r.t. all parameters)
+        self.dWxh, self.dWhh, self.dWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+        self.dbh, self.dby = np.zeros_like(self.bh), np.zeros_like(self.by)
+
+        # Memory variables for AdaGrad
+        self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
+        self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad
+
+
+
+    def weightUpdate(self, learning_rate = 1e-1):
+        """
+        Weight update using Adagrad 
+        """
+
+        # perform parameter update with Adagrad
+        for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
+                                      [PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby], 
+                                      [PARAM.mWxh, PARAM.mWhh, PARAM.mWhy, PARAM.mbh, PARAM.mby]):
+            mem += dparam * dparam
+            param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
+        
+        # reset derivatives to zero
+        Z = np.zeros_like
+        self.dWxh, self.dWhh, self.dWhy = Z(self.Wxh), Z(self.Whh), Z(self.Why)
+        self.dbh, self.dby = Z(self.bh), Z(self.by)
+
+
+
 
 class RnnParam:
     """
     All LSTM network parameters
     """
 
-    def __init__(self, hidden_size, vocab_size):
+    def __init__(self, hidden_size, input_size):
 
         #print "__init__ LstmParam"
 
         self.hidden_size = hidden_size
-        self.vocab_size  = vocab_size
+        self.input_size  = input_size
 
         ##
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
         np.random.seed(3)
-        self.Wxh = np.random.randn(hidden_size , vocab_size )*0.01 # input to hidden
+        self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
         self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
-        self.Why = np.random.randn(vocab_size  , hidden_size)*0.01 # hidden to output
+        self.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
         self.bh  = np.zeros((hidden_size , 1)) # hidden bias
-        self.by  = np.zeros((vocab_size  , 1)) # output bias
+        self.by  = np.zeros((input_size  , 1)) # output bias
 
         # diffs (derivative of loss function w.r.t. all parameters)
         self.dWxh, self.dWhh, self.dWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
@@ -76,12 +130,12 @@ class RnnCell:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS):
+    def __init__(self, hidden_size, input_size):
 
         #print "__init__ LstmCell"
 
         # store reference to parameters and to activations
-        self.state = CellState(PARAMS.hidden_size, PARAMS.vocab_size)
+        self.state = CellState(hidden_size, input_size)
         #self.param = PARAMS
 
         # non-recurrent input to node
@@ -108,7 +162,7 @@ class RnnCell:
         by = weights.by
 
         # encode in 1-of-k representation
-        xs = np.zeros((vocab_size,1))
+        xs = np.zeros((input_size,1))
         xs[inputs] = 1
 
         # hidden state
@@ -163,16 +217,21 @@ class Rnn:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS, seq_length):
+    def __init__(self, PARAMS, rnn_depth):
 
         self.name   = 'rnn'
         self.PARAMS = PARAMS
-        self.seq_length = seq_length
 
-        #Create RNN network of cells
+        # Depth of RNN
+        self.rnn_depth = rnn_depth
+
+        self.hidden_size = self.PARAMS.hidden_size
+        self.input_size  = self.PARAMS.input_size
+
+        # Create RNN network of cells
         self.CELLS = [];
-        for _ in xrange(seq_length):
-            newCell = RnnCell(PARAM)
+        for _ in xrange(rnn_depth):
+            newCell = RnnCell(hidden_size, input_size)
             self.CELLS.append(newCell)
 
         self.loss = 0
@@ -206,7 +265,7 @@ class Rnn:
         
         ####
         # forward pass
-        for t in xrange(len(inputs)):
+        for t in xrange(self.rnn_depth):
 
           self.CELLS[t].forwardPass(inputs[t], hprev, self.PARAMS)
 
@@ -217,10 +276,10 @@ class Rnn:
         ####
         # network loss and derivative computation
         loss = 0
-        for t in xrange(len(inputs)):
-          # softmax (cross-entropy loss)
-          thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
-          loss += thisLoss
+        for t in xrange(self.rnn_depth):
+            # softmax (cross-entropy loss)
+            thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
+            loss += thisLoss
 
         self.loss = loss
         
@@ -229,26 +288,26 @@ class Rnn:
         # backward pass: compute gradients going backwards
         dh_1 = np.zeros_like(self.CELLS[0].hs)
         
-        for t in reversed(xrange(len(inputs))):
-          # Derivative calculation
-          dy     = np.copy(self.CELLS[t].ps)
-          dy[targets[t]] -= 1 # backprop into y
+        for t in reversed(xrange(self.rnn_depth)):
+            # Derivative calculation
+            dy     = np.copy(self.CELLS[t].ps)
+            dy[targets[t]] -= 1 # backprop into y
 
-          # Previous hidden state
-          hs_1 = hs[t-1]
+            # Previous hidden state
+            hs_1 = hs[t-1]
 
-          # Back prop for this cell
-          self.CELLS[t].backwardPass(dy, dh_1, hs_1, self.PARAMS)
+            # Back prop for this cell
+            self.CELLS[t].backwardPass(dy, dh_1, hs_1, self.PARAMS)
 
-          # Hidden delta for this cell
-          dh_1 = self.CELLS[t].dh_1
+            # Hidden delta for this cell
+            dh_1 = self.CELLS[t].dh_1
 
-          # Accumulators
-          dWxh  += self.CELLS[t].dWxh
-          dWhh  += self.CELLS[t].dWhh
-          dWhy  += self.CELLS[t].dWhy
-          dby   += self.CELLS[t].dby
-          dbh   += self.CELLS[t].dbh
+            # Accumulators
+            dWxh  += self.CELLS[t].dWxh
+            dWhh  += self.CELLS[t].dWhh
+            dWhy  += self.CELLS[t].dWhy
+            dby   += self.CELLS[t].dby
+            dbh   += self.CELLS[t].dbh
 
 
         # clip to mitigate exploding gradients
@@ -283,7 +342,7 @@ def lossFun(inputs, targets, hprev):
   # forward pass
   for t in xrange(len(inputs)):
     
-    xs[t] = np.zeros((vocab_size,1)) # encode in 1-of-k representation
+    xs[t] = np.zeros((input_size,1)) # encode in 1-of-k representation
     xs[t][inputs[t]] = 1
 
     hs[t] = np.tanh(np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t-1]) + bh) # hidden state
@@ -320,15 +379,15 @@ def sample(h, seed_ix, n):
   sample a sequence of integers from the model 
   h is memory state, seed_ix is seed letter for first time step
   """
-  x = np.zeros((vocab_size, 1))
+  x = np.zeros((input_size, 1))
   x[seed_ix] = 1
   ixes = []
   for t in xrange(n):
     h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
     y = np.dot(Why, h) + by
     p = np.exp(y) / np.sum(np.exp(y))
-    ix = np.random.choice(range(vocab_size), p=p.ravel())
-    x = np.zeros((vocab_size, 1))
+    ix = np.random.choice(range(input_size), p=p.ravel())
+    x = np.zeros((input_size, 1))
     x[ix] = 1
     ixes.append(ix)
   return ixes
@@ -373,8 +432,8 @@ np.random.seed(3)
 data  = open('input2.txt', 'r').read() # should be simple plain text file
 chars = list(set(data))
 
-data_size, vocab_size = len(data), len(chars)
-print 'data has %d characters, %d unique.' % (data_size, vocab_size)
+data_size, input_size = len(data), len(chars)
+print 'data has %d characters, %d unique.' % (data_size, input_size)
 char_to_ix = { ch:i for i,ch in enumerate(chars) }
 ix_to_char = { i:ch for i,ch in enumerate(chars) }
 
@@ -384,7 +443,7 @@ seq_length = 25 # number of steps to unroll the RNN for
 learning_rate = 1e-1
 
 # model parameters
-PARAM = RnnParam(hidden_size, vocab_size)
+PARAM = RnnParam(hidden_size, input_size)
 Wxh = PARAM.Wxh
 Whh = PARAM.Whh
 Why = PARAM.Why
@@ -397,7 +456,7 @@ by  = PARAM.by
 
 
 n, p = 0, 0
-smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
+smooth_loss = -np.log(1.0/input_size)*seq_length # loss at iteration 0
 
 keepGoing = True
 
