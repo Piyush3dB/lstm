@@ -36,25 +36,25 @@ class networkWeights:
 
     def _mem(self):
         # Memory variables for AdaGrad
-        mWxh = np.zeros_like(self.weights.Wxh)
-        mWhh = np.zeros_like(self.weights.Whh)
-        mWhy = np.zeros_like(self.weights.Why)
-        mbh  = np.zeros_like(self.weights.bh)
-        mby  = np.zeros_like(self.weights.by)
+        self.mWxh = np.zeros_like(self.weights.Wxh)
+        self.mWhh = np.zeros_like(self.weights.Whh)
+        self.mWhy = np.zeros_like(self.weights.Why)
+        self.mbh  = np.zeros_like(self.weights.bh)
+        self.mby  = np.zeros_like(self.weights.by)
 
     def _grads(self):
-        dWxh = np.zeros_like(self.weights.Wxh)
-        dWhh = np.zeros_like(self.weights.Whh)
-        dWhy = np.zeros_like(self.weights.Why)
-        dbh  = np.zeros_like(self.weights.bh)
-        dby  = np.zeros_like(self.weights.by)
+        self.dWxh = np.zeros_like(self.weights.Wxh)
+        self.dWhh = np.zeros_like(self.weights.Whh)
+        self.dWhy = np.zeros_like(self.weights.Why)
+        self.dbh  = np.zeros_like(self.weights.bh)
+        self.dby  = np.zeros_like(self.weights.by)
 
     def _weights(self):
-        Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
-        Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
-        Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
-        bh  = np.zeros((hidden_size , 1)) # hidden bias
-        by  = np.zeros((input_size  , 1)) # output bias
+        self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
+        self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
+        self.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
+        self.bh  = np.zeros((hidden_size , 1)) # hidden bias
+        self.by  = np.zeros((input_size  , 1)) # output bias
 
 
 
@@ -229,10 +229,9 @@ class Rnn:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS, rnn_depth, hidden_size, input_size):
+    def __init__(self, rnn_depth, hidden_size, input_size):
 
         self.name   = 'rnn'
-        self.PARAMS = PARAMS
 
         # Depth of RNN
         self.rnn_depth = rnn_depth
@@ -445,8 +444,8 @@ seq_length = 25 # number of steps to unroll the RNN for
 learning_rate = 1e-1
 
 # model parameters
-Weights = networkWeights(hidden_size, input_size)
-
+#PARAM = networkWeights(hidden_size, input_size)
+#pdb.set_trace()
 PARAM = RnnParam(hidden_size, input_size)
 Wxh = PARAM.Wxh
 Whh = PARAM.Whh
@@ -465,7 +464,7 @@ smooth_loss = -np.log(1.0/input_size)*seq_length # loss at iteration 0
 keepGoing = True
 
 
-rnnObj = Rnn(PARAM, seq_length, hidden_size, input_size)
+rnnObj = Rnn(seq_length, hidden_size, input_size)
 
 # Main loop
 while keepGoing:
