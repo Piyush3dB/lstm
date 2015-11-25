@@ -71,8 +71,8 @@ class RnnParam:
 
         #print "__init__ LstmParam"
 
-        self.hidden_size = hidden_size
-        self.input_size  = input_size
+        #self.hidden_size = hidden_size
+        #self.input_size  = input_size
 
         ##
         # Weight matrices describe the linear fransformation from 
@@ -117,11 +117,12 @@ class CellState:
     State associated with an RNN node
     """
     def __init__(self, cellWidth, xSize):
+        name = 'state'
         #print "__init__ CellState"
         # N dimensional vectors
-        self.h = np.zeros(cellWidth) # h - cell output
+        #self.h = np.zeros(cellWidth) # h - cell output
         # Persistent state for derivatives
-        self.dh = np.zeros_like(self.h)
+        #self.dh = np.zeros_like(self.h)
 
 
 class RnnCell:
@@ -217,7 +218,7 @@ class Rnn:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS, rnn_depth):
+    def __init__(self, PARAMS, rnn_depth, hidden_size, input_size):
 
         self.name   = 'rnn'
         self.PARAMS = PARAMS
@@ -225,8 +226,8 @@ class Rnn:
         # Depth of RNN
         self.rnn_depth = rnn_depth
 
-        self.hidden_size = self.PARAMS.hidden_size
-        self.input_size  = self.PARAMS.input_size
+        #self.hidden_size = self.PARAMS.hidden_size
+        #self.input_size  = self.PARAMS.input_size
 
         # Create RNN network of cells
         self.CELLS = [];
@@ -461,7 +462,7 @@ smooth_loss = -np.log(1.0/input_size)*seq_length # loss at iteration 0
 keepGoing = True
 
 
-rnnObj = Rnn(PARAM, seq_length)
+rnnObj = Rnn(PARAM, seq_length, hidden_size, input_size)
 
 # Main loop
 while keepGoing:
