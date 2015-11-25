@@ -156,93 +156,94 @@ class RnnCell:
 
 
 
-#    cell = RnnCell(inputs, h_prev_cell)
 
+class Rnn:
+    """
+    A single LSTM cell composed of State and Weight parameters.
+    Function methods define the forward and backward passes
+    """
 
-def lossFunModif(inputs, targets, hprev):
-  """
-  inputs,targets are both list of integers.
-  hprev is Hx1 array of initial hidden state
-  returns the loss, gradients on model parameters, and last hidden state
-  """
-  hs = {}
-  hs[-1] = np.copy(hprev)
+    def __init__(self, PARAMS):
 
-  dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-  dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
-  
-  ###
-  ###
-  #Create RNN network of cells
-  CELLS = [];
-  for _ in xrange(len(inputs)):
-    newCell = RnnCell(PARAM)
-    CELLS.append(newCell)
-    #print 'appended'
-
-
-  
-  ####
-  ####
-  # forward pass
-  for t in xrange(len(inputs)):
-
-    CELLS[t].forwardPass(inputs[t], hprev)
-
-    #xs[t] = CELLS[t].xs
-    hs[t] = CELLS[t].hs
-    #ps[t] = CELLS[t].ps
-
-    hprev = CELLS[t].hs
+        self.name   = 'rnn'
+        self.PARAMS = PARAMS
     
-  ####
-  ####
-  # network loss and derivative computation
-  loss = 0
-  for t in xrange(len(inputs)):
-    # softmax (cross-entropy loss)
-    thisLoss = -np.log(CELLS[t].ps[ targets[t],0 ]) 
-    loss += thisLoss
 
-    # Compute loss
-    #dy     = np.copy(CELLS[t].ps)
-    #dy[targets[t]] -= 1 # backprop into y
-  
+    def lossFunModif(self, inputs, targets, hprev):
+        """
+        inputs,targets are both list of integers.
+        hprev is Hx1 array of initial hidden state
+        returns the loss, gradients on model parameters, and last hidden state
+        """
+        hs = {}
+        hs[-1] = np.copy(hprev)
 
-  ####
-  ####
-  # backward pass: compute gradients going backwards
-  dh_1 = np.zeros_like(CELLS[0].hs)
+        dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
+        dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
+        
+        ###
+        ###
+        #Create RNN network of cells
+        CELLS = [];
+        for _ in xrange(len(inputs)):
+          newCell = RnnCell(PARAM)
+          CELLS.append(newCell)
+          #print 'appended'
 
-  
-  for t in reversed(xrange(len(inputs))):
-    # Derivative calculation
-    dy     = np.copy(CELLS[t].ps)
-    dy[targets[t]] -= 1 # backprop into y
 
-    # Previous hidden state
-    hs_1 = hs[t-1]
+        
+        ####
+        # forward pass
+        for t in xrange(len(inputs)):
 
-    # Back prop for this cell
-    CELLS[t].backwardPass(dy, dh_1, hs_1)
+          CELLS[t].forwardPass(inputs[t], hprev)
 
-    # Hidden delta for this cell
-    dh_1 = CELLS[t].dh_1
+          hs[t] = CELLS[t].hs
+          hprev = CELLS[t].hs
+          
 
-    # Accumulators
-    dWxh  += CELLS[t].dWxh
-    dWhh  += CELLS[t].dWhh
-    dWhy  += CELLS[t].dWhy
-    dby   += CELLS[t].dby
-    dbh   += CELLS[t].dbh
+        ####
+        # network loss and derivative computation
+        loss = 0
+        for t in xrange(len(inputs)):
+          # softmax (cross-entropy loss)
+          thisLoss = -np.log(CELLS[t].ps[ targets[t],0 ]) 
+          loss += thisLoss
+        
 
-  # clip to mitigate exploding gradients
-  for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-    np.clip(dparam, -5, 5, out=dparam)
+        ####
+        # backward pass: compute gradients going backwards
+        dh_1 = np.zeros_like(CELLS[0].hs)
+        
+        for t in reversed(xrange(len(inputs))):
+          # Derivative calculation
+          dy     = np.copy(CELLS[t].ps)
+          dy[targets[t]] -= 1 # backprop into y
 
-  #pdb.set_trace()
-  
-  return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
+          # Previous hidden state
+          hs_1 = hs[t-1]
+
+          # Back prop for this cell
+          CELLS[t].backwardPass(dy, dh_1, hs_1)
+
+          # Hidden delta for this cell
+          dh_1 = CELLS[t].dh_1
+
+          # Accumulators
+          dWxh  += CELLS[t].dWxh
+          dWhh  += CELLS[t].dWhh
+          dWhy  += CELLS[t].dWhy
+          dby   += CELLS[t].dby
+          dbh   += CELLS[t].dbh
+
+
+        # clip to mitigate exploding gradients
+        for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
+          np.clip(dparam, -5, 5, out=dparam)
+
+        #pdb.set_trace()
+        
+        return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
 
 
 
@@ -379,6 +380,8 @@ smooth_loss = -np.log(1.0/vocab_size)*seq_length # loss at iteration 0
 keepGoing = True
 
 
+rnnObj = Rnn(PARAM)
+
 # Main loop
 while keepGoing:
 
@@ -399,7 +402,7 @@ while keepGoing:
 
     # forward seq_length characters through the net and fetch gradient
     #pdb.set_trace()
-    loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = lossFunModif(inputs, targets, hprev)
+    loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = rnnObj.lossFunModif(inputs, targets, hprev)
     
     # Smooth and log message print
     smooth_loss = smooth_loss * 0.999 + loss * 0.001
