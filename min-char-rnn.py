@@ -195,10 +195,16 @@ def lossFunModif(inputs, targets, hprev):
     
   ####
   ####
-  # network loss
+  # network loss and derivative computation
   loss = 0
   for t in xrange(len(inputs)):
-    loss += -np.log(CELLS[t].ps[targets[t],0]) # softmax (cross-entropy loss)
+    # softmax (cross-entropy loss)
+    thisLoss = -np.log(CELLS[t].ps[ targets[t],0 ]) 
+    loss += thisLoss
+
+    # Compute loss
+    #dy     = np.copy(CELLS[t].ps)
+    #dy[targets[t]] -= 1 # backprop into y
   
 
   ####
@@ -210,27 +216,29 @@ def lossFunModif(inputs, targets, hprev):
 
   
   for t in reversed(xrange(len(inputs))):
-    
-    # Compute loss
+    # Derivative calculation
     dy     = np.copy(CELLS[t].ps)
     dy[targets[t]] -= 1 # backprop into y
 
+    # Previous hidden state
     hs_1 = hs[t-1]
+
+    # Back prop for this cell
     CELLS[t].backwardPass(dy, dh_1, hs_1)
 
+    # Hidden delta for this cell
     dh_1 = CELLS[t].dh_1
 
-
-
-    # Accumulations
+    # Accumulators
     dWxh  += CELLS[t].dWxh
     dWhh  += CELLS[t].dWhh
     dWhy  += CELLS[t].dWhy
     dby   += CELLS[t].dby
     dbh   += CELLS[t].dbh
 
+  # clip to mitigate exploding gradients
   for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-    np.clip(dparam, -5, 5, out=dparam) # clip to mitigate exploding gradients
+    np.clip(dparam, -5, 5, out=dparam)
 
   #pdb.set_trace()
   
