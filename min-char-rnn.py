@@ -22,29 +22,39 @@ class networkWeights:
         self.hidden_size = hidden_size
         self.input_size  = input_size
 
+
         ##
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
         np.random.seed(3)
-        self.weights.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
-        self.weights.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
-        self.weights.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
-        self.weights.bh  = np.zeros((hidden_size , 1)) # hidden bias
-        self.weights.by  = np.zeros((input_size  , 1)) # output bias
 
-        # diffs (derivative of loss function w.r.t. all parameters)
-        self.grads.dWxh = np.zeros_like(self.weights.Wxh)
-        self.grads.dWhh = np.zeros_like(self.weights.Whh)
-        self.grads.dWhy = np.zeros_like(self.weights.Why)
-        self.grads.dbh  = np.zeros_like(self.weights.bh)
-        self.grads.dby  = np.zeros_like(self.weights.by)
+        self.weights = self._weights
+        self.grads   = self._grads
+        self.mem     = self._mem
 
+        
+
+    def _mem(self):
         # Memory variables for AdaGrad
-        self.mem.mWxh = np.zeros_like(self.weights.Wxh)
-        self.mem.mWhh = np.zeros_like(self.weights.Whh)
-        self.mem.mWhy = np.zeros_like(self.weights.Why)
-        self.mem.mbh  = np.zeros_like(self.weights.bh)
-        self.mem.mby  = np.zeros_like(self.weights.by)
+        mWxh = np.zeros_like(self.weights.Wxh)
+        mWhh = np.zeros_like(self.weights.Whh)
+        mWhy = np.zeros_like(self.weights.Why)
+        mbh  = np.zeros_like(self.weights.bh)
+        mby  = np.zeros_like(self.weights.by)
+
+    def _grads(self):
+        dWxh = np.zeros_like(self.weights.Wxh)
+        dWhh = np.zeros_like(self.weights.Whh)
+        dWhy = np.zeros_like(self.weights.Why)
+        dbh  = np.zeros_like(self.weights.bh)
+        dby  = np.zeros_like(self.weights.by)
+
+    def _weights(self):
+        Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
+        Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
+        Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
+        bh  = np.zeros((hidden_size , 1)) # hidden bias
+        by  = np.zeros((input_size  , 1)) # output bias
 
 
 
@@ -110,9 +120,9 @@ class RnnParam:
         """
 
         # perform parameter update with Adagrad
-        for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
-                                      [PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby], 
-                                      [PARAM.mWxh, PARAM.mWhh, PARAM.mWhy, PARAM.mbh, PARAM.mby]):
+        for param, dparam, mem in zip([self.Wxh, self.Whh, self.Why, self.bh, self.by], 
+                                      [self.dWxh, self.dWhh, self.dWhy, self.dbh, self.dby], 
+                                      [self.mWxh, self.mWhh, self.mWhy, self.mbh, self.mby]):
             mem += dparam * dparam
             param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
         
@@ -435,6 +445,8 @@ seq_length = 25 # number of steps to unroll the RNN for
 learning_rate = 1e-1
 
 # model parameters
+Weights = networkWeights(hidden_size, input_size)
+
 PARAM = RnnParam(hidden_size, input_size)
 Wxh = PARAM.Wxh
 Whh = PARAM.Whh
