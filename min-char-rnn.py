@@ -165,9 +165,11 @@ def lossFunModif(inputs, targets, hprev):
   hprev is Hx1 array of initial hidden state
   returns the loss, gradients on model parameters, and last hidden state
   """
-  xs, hs, ys, ps = {}, {}, {}, {}
+  hs = {}
   hs[-1] = np.copy(hprev)
 
+  dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
+  dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
   
   ###
   ###
@@ -191,7 +193,7 @@ def lossFunModif(inputs, targets, hprev):
     hs[t] = CELLS[t].hs
     #ps[t] = CELLS[t].ps
 
-    hprev = hs[t]
+    hprev = CELLS[t].hs
     
   ####
   ####
@@ -210,9 +212,7 @@ def lossFunModif(inputs, targets, hprev):
   ####
   ####
   # backward pass: compute gradients going backwards
-  dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-  dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
-  dh_1 = np.zeros_like(hs[0])
+  dh_1 = np.zeros_like(CELLS[0].hs)
 
   
   for t in reversed(xrange(len(inputs))):
