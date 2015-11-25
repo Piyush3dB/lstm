@@ -175,6 +175,8 @@ class Rnn:
             newCell = RnnCell(PARAM)
             self.CELLS.append(newCell)
 
+        self.loss = 0
+
 
     def resetGrads(self):
 
@@ -219,6 +221,8 @@ class Rnn:
           # softmax (cross-entropy loss)
           thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
           loss += thisLoss
+
+        self.loss = loss
         
 
         ####
@@ -249,11 +253,19 @@ class Rnn:
 
         # clip to mitigate exploding gradients
         for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-          np.clip(dparam, -5, 5, out=dparam)
+            np.clip(dparam, -5, 5, out=dparam)
+
+        self.dWxh = dWxh
+        self.dWhh = dWhh
+        self.dWhy = dWhy
+        self.dby  = dby 
+        self.dbh  = dbh 
+
 
         #pdb.set_trace()
         
-        return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
+        #return dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
+        return hs[len(inputs)-1]
 
 
 
@@ -412,7 +424,14 @@ while keepGoing:
 
     # forward seq_length characters through the net and fetch gradient
     #pdb.set_trace()
-    loss, PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby, hprev = rnnObj.lossFunModif(inputs, targets, hprev)
+    hprev = rnnObj.lossFunModif(inputs, targets, hprev)
+    loss = rnnObj.loss
+    PARAM.dWxh = rnnObj.dWxh
+    PARAM.dWhh = rnnObj.dWhh
+    PARAM.dWhy = rnnObj.dWhy
+    PARAM.dbh  = rnnObj.dbh
+    PARAM.dby  = rnnObj.dby
+
     #rnnObj.resetGrads()
 
     # Smooth and log message print
