@@ -26,19 +26,25 @@ class networkWeights:
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
         np.random.seed(3)
-        self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
-        self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
-        self.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
-        self.bh  = np.zeros((hidden_size , 1)) # hidden bias
-        self.by  = np.zeros((input_size  , 1)) # output bias
+        self.weights.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
+        self.weights.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
+        self.weights.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
+        self.weights.bh  = np.zeros((hidden_size , 1)) # hidden bias
+        self.weights.by  = np.zeros((input_size  , 1)) # output bias
 
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWxh, self.dWhh, self.dWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
-        self.dbh, self.dby = np.zeros_like(self.bh), np.zeros_like(self.by)
+        self.grads.dWxh = np.zeros_like(self.weights.Wxh)
+        self.grads.dWhh = np.zeros_like(self.weights.Whh)
+        self.grads.dWhy = np.zeros_like(self.weights.Why)
+        self.grads.dbh  = np.zeros_like(self.weights.bh)
+        self.grads.dby  = np.zeros_like(self.weights.by)
 
         # Memory variables for AdaGrad
-        self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
-        self.mbh, self.mby = np.zeros_like(self.bh), np.zeros_like(self.by) # memory variables for Adagrad
+        self.mem.mWxh = np.zeros_like(self.weights.Wxh)
+        self.mem.mWhh = np.zeros_like(self.weights.Whh)
+        self.mem.mWhy = np.zeros_like(self.weights.Why)
+        self.mem.mbh  = np.zeros_like(self.weights.bh)
+        self.mem.mby  = np.zeros_like(self.weights.by)
 
 
 
@@ -48,16 +54,20 @@ class networkWeights:
         """
 
         # perform parameter update with Adagrad
-        for param, dparam, mem in zip([Wxh, Whh, Why, bh, by], 
-                                      [PARAM.dWxh, PARAM.dWhh, PARAM.dWhy, PARAM.dbh, PARAM.dby], 
-                                      [PARAM.mWxh, PARAM.mWhh, PARAM.mWhy, PARAM.mbh, PARAM.mby]):
-            mem += dparam * dparam
-            param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
+        for weights, grads, mem in zip([self.weights.Wxh, self.weights.Whh, self.weights.Why, self.weights.bh, self.weights.by], 
+                                      [ self.grads.dWxh, self.grads.dWhh, self.grads.dWhy, self.grads.dbh, self.grads.dby], 
+                                      [ self.mem.mWxh  , self.mem.mWhh  , self.mem.mWhy  , self.mem.mbh  , self.mem.mby  ]):
+            mem += grads * grads
+            weights += -learning_rate * grads / np.sqrt(mem + 1e-8) # adagrad update
         
         # reset derivatives to zero
         Z = np.zeros_like
-        self.dWxh, self.dWhh, self.dWhy = Z(self.Wxh), Z(self.Whh), Z(self.Why)
-        self.dbh, self.dby = Z(self.bh), Z(self.by)
+        # diffs (derivative of loss function w.r.t. all parameters)
+        self.grads.dWxh = np.zeros_like(self.weights.Wxh)
+        self.grads.dWhh = np.zeros_like(self.weights.Whh)
+        self.grads.dWhy = np.zeros_like(self.weights.Why)
+        self.grads.dbh  = np.zeros_like(self.weights.bh)
+        self.grads.dby  = np.zeros_like(self.weights.by)
 
 
 
@@ -132,19 +142,10 @@ class RnnCell:
     """
 
     def __init__(self, hidden_size, input_size):
-
         #print "__init__ LstmCell"
 
         # store reference to parameters and to activations
         self.state = CellState(hidden_size, input_size)
-        #self.param = PARAMS
-
-        # non-recurrent input to node
-        self.x  = None
-        # non-recurrent input concatenated with recurrent input
-        self.xc = None
-
-        # States
 
     def forwardPass(self, inputs, hprev, weights):
         """
@@ -226,9 +227,6 @@ class Rnn:
         # Depth of RNN
         self.rnn_depth = rnn_depth
 
-        #self.hidden_size = self.PARAMS.hidden_size
-        #self.input_size  = self.PARAMS.input_size
-
         # Create RNN network of cells
         self.CELLS = [];
         for _ in xrange(rnn_depth):
@@ -238,15 +236,8 @@ class Rnn:
         self.loss = 0
 
 
-    def resetGrads(self):
 
-        self.PARAMS.dWxh  = 0
-        self.PARAMS.dWhh  = 0
-        self.PARAMS.dWhy  = 0
-        self.PARAMS.dby   = 0
-        self.PARAMS.dbh   = 0
-
-    def lossFunModif(self, inputs, targets, hprev):
+    def lossFunModif(self, inputs, targets, hprev, weights):
         """
         inputs,targets are both list of integers.
         hprev is Hx1 array of initial hidden state
@@ -268,7 +259,7 @@ class Rnn:
         # forward pass
         for t in xrange(self.rnn_depth):
 
-          self.CELLS[t].forwardPass(inputs[t], hprev, self.PARAMS)
+          self.CELLS[t].forwardPass(inputs[t], hprev, weights)
 
           hs[t] = self.CELLS[t].hs
           hprev = self.CELLS[t].hs
@@ -298,7 +289,7 @@ class Rnn:
             hs_1 = hs[t-1]
 
             # Back prop for this cell
-            self.CELLS[t].backwardPass(dy, dh_1, hs_1, self.PARAMS)
+            self.CELLS[t].backwardPass(dy, dh_1, hs_1, weights)
 
             # Hidden delta for this cell
             dh_1 = self.CELLS[t].dh_1
@@ -484,7 +475,7 @@ while keepGoing:
 
     # forward seq_length characters through the net and fetch gradient
     #pdb.set_trace()
-    hprev = rnnObj.lossFunModif(inputs, targets, hprev)
+    hprev = rnnObj.lossFunModif(inputs, targets, hprev, PARAM)
     loss = rnnObj.loss
     PARAM.dWxh = rnnObj.dWxh
     PARAM.dWhh = rnnObj.dWhh
