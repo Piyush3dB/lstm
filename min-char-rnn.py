@@ -20,9 +20,9 @@ class gradients:
     def __init__(self, hidden_size, input_size):
 
 
-        self.dWxh = np.zeros(hidden_size , input_size )
-        self.dWhh = np.zeros(hidden_size , hidden_size)
-        self.dWhy = np.zeros(input_size  , hidden_size)
+        self.dWxh = np.zeros((hidden_size , input_size ))
+        self.dWhh = np.zeros((hidden_size , hidden_size))
+        self.dWhy = np.zeros((input_size  , hidden_size))
         self.dbh  = np.zeros((hidden_size , 1))
         self.dby  = np.zeros((input_size  , 1))
 
@@ -38,6 +38,8 @@ class networkWeights:
     def __init__(self, hidden_size, input_size):
 
         #print "__init__ LstmParam"
+
+        #pdb.set_trace()
 
         self.hidden_size = hidden_size
         self.input_size  = input_size
@@ -62,12 +64,7 @@ class networkWeights:
         self.mbh  = np.zeros_like(self.weights.bh)
         self.mby  = np.zeros_like(self.weights.by)
 
-    def _grads(self):
-        self.dWxh = np.zeros_like(self.weights.Wxh)
-        self.dWhh = np.zeros_like(self.weights.Whh)
-        self.dWhy = np.zeros_like(self.weights.Why)
-        self.dbh  = np.zeros_like(self.weights.bh)
-        self.dby  = np.zeros_like(self.weights.by)
+
 
     def _weights(self):
         self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
@@ -279,9 +276,13 @@ class Rnn:
         hs = {}
         hs[-1] = np.copy(hprev)
 
+        #pdb.set_trace()
 
-        dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-        dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
+
+        grads   = gradients(self.hidden_size, self.input_size)
+
+        dWxh, dWhh, dWhy = grads.dWxh, grads.dWhh, grads.dWhy
+        dbh, dby         = grads.dbh, grads.dby
         
         ###
         ###
@@ -353,7 +354,7 @@ class Rnn:
 
         self.hprev = hs[len(inputs)-1]
 
-        return self.hprev
+        return self.hprev, grads
 
 
 
@@ -559,13 +560,13 @@ while keepGoing:
 
     # forward seq_length characters through the net and fetch gradient
     #pdb.set_trace()
-    hprev = rnnObj.lossFunModif(inputs, targets, hprev, PARAM)
+    hprev, grads = rnnObj.lossFunModif(inputs, targets, hprev, PARAM)
     loss = rnnObj.loss
-    PARAM.dWxh = rnnObj.dWxh
-    PARAM.dWhh = rnnObj.dWhh
-    PARAM.dWhy = rnnObj.dWhy
-    PARAM.dbh  = rnnObj.dbh
-    PARAM.dby  = rnnObj.dby
+    PARAM.dWxh = grads.dWxh
+    PARAM.dWhh = grads.dWhh
+    PARAM.dWhy = grads.dWhy
+    PARAM.dbh  = grads.dbh
+    PARAM.dby  = grads.dby
 
     #rnnObj.resetGrads()
 
