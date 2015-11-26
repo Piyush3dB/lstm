@@ -35,69 +35,12 @@ class networkGradients:
 
 
 
+
+
+
 class networkWeights:
     """
     Weights and update function
-    """
-
-
-    def __init__(self, hidden_size, input_size):
-
-        #print "__init__ LstmParam"
-
-        #pdb.set_trace()
-
-        self.hidden_size = hidden_size
-        self.input_size  = input_size
-
-
-        ##
-        # Weight matrices describe the linear fransformation from 
-        # input space to output space.
-        np.random.seed(3)
-
-        self.weights = self._weights
-        self.mem     = self._mem
-
-
-
-
-    def _weights(self):
-        self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
-        self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
-        self.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
-        self.bh  = np.zeros((hidden_size , 1)) # hidden bias
-        self.by  = np.zeros((input_size  , 1)) # output bias
-
-
-
-    def _mem(self):
-        # Memory variables for AdaGrad
-        self.mWxh = np.zeros_like(self.weights.Wxh)
-        self.mWhh = np.zeros_like(self.weights.Whh)
-        self.mWhy = np.zeros_like(self.weights.Why)
-        self.mbh  = np.zeros_like(self.weights.bh)
-        self.mby  = np.zeros_like(self.weights.by)
-
-
-    def weightUpdate(self, grads, learning_rate = 1e-1):
-        """
-        Weight update using Adagrad 
-        """
-
-        # perform parameter update with Adagrad
-        for w, g, m in zip([self.weights.Wxh, self.weights.Whh, self.weights.Why, self.weights.bh, self.weights.by], 
-                                      [ grads.dWxh, grads.dWhh, grads.dWhy, grads.dbh, grads.dby], 
-                                      [ self.mem.mWxh  , self.mem.mWhh  , self.mem.mWhy  , self.mem.mbh  , self.mem.mby  ]):
-            m += g * g
-            w += -learning_rate * g / np.sqrt(m + 1e-8) # adagrad update
-
-
-
-
-class RnnParam:
-    """
-    All LSTM network parameters
     """
 
     def __init__(self, hidden_size, input_size):
@@ -131,9 +74,9 @@ class RnnParam:
         """
 
         # perform parameter update with Adagrad
-        for param, dparam, mem in zip([self.Wxh, self.Whh, self.Why, self.bh, self.by], 
+        for param, dparam, mem in zip([self.Wxh  , self.Whh  , self.Why  , self.bh  , self.by  ], 
                                       [grads.dWxh, grads.dWhh, grads.dWhy, grads.dbh, grads.dby], 
-                                      [self.mWxh, self.mWhh, self.mWhy, self.mbh, self.mby]):
+                                      [self.mWxh , self.mWhh , self.mWhy , self.mbh , self.mby ]):
             mem += dparam * dparam
             param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
         
@@ -268,18 +211,10 @@ class Rnn:
         hs = {}
         hs[-1] = np.copy(hprev)
 
-        #pdb.set_trace()
-
-
+        # Initialise gradients variables
         grads   = networkGradients(self.hidden_size, self.input_size)
-
-
-        
+       
         ###
-        ###
-
-
-
         
         ####
         # forward pass
@@ -329,13 +264,7 @@ class Rnn:
 
 
         # clip to mitigate exploding gradients
-
         grads.clip()
-
-
-        #pdb.set_trace()
-        
-        #return dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
 
         self.hprev = hs[len(inputs)-1]
 
@@ -504,7 +433,7 @@ learning_rate = 1e-1
 # model parameters
 #PARAM = networkWeights(hidden_size, input_size)
 #pdb.set_trace()
-PARAM = RnnParam(hidden_size, input_size)
+PARAM = networkWeights(hidden_size, input_size)
 
 
 
