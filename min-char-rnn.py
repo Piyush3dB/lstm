@@ -9,6 +9,26 @@ import pdb
 
 # vocab_size == input_size
 
+
+
+class gradients:
+    """
+    Weights and update function
+    """
+
+
+    def __init__(self, hidden_size, input_size):
+
+
+        self.dWxh = np.zeros(hidden_size , input_size )
+        self.dWhh = np.zeros(hidden_size , hidden_size)
+        self.dWhy = np.zeros(input_size  , hidden_size)
+        self.dbh  = np.zeros((hidden_size , 1))
+        self.dby  = np.zeros((input_size  , 1))
+
+
+
+
 class networkWeights:
     """
     Weights and update function
@@ -29,7 +49,7 @@ class networkWeights:
         np.random.seed(3)
 
         self.weights = self._weights
-        self.grads   = self._grads
+        self.grads   = gradients(hidden_size, input_size)
         self.mem     = self._mem
 
         
@@ -259,6 +279,7 @@ class Rnn:
         hs = {}
         hs[-1] = np.copy(hprev)
 
+
         dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
         dbh, dby         = np.zeros_like(bh), np.zeros_like(by)
         
@@ -332,12 +353,12 @@ class Rnn:
 
         self.hprev = hs[len(inputs)-1]
 
-        return hs[len(inputs)-1]
+        return self.hprev
 
 
 
 
-def sample2(h, seed_ix, n, hidden_size, input_size, weights):
+def sample2(hprev, seed_ix, n, hidden_size, input_size, weights):
     """ 
     sample a sequence of integers from the model 
     h is memory state, seed_ix is seed letter for first time step
@@ -350,7 +371,7 @@ def sample2(h, seed_ix, n, hidden_size, input_size, weights):
     samplerCell = RnnCell(hidden_size, input_size)
     
     # Initialise previous hidden state
-    hprev = np.zeros((hidden_size,1))
+    #hprev = np.zeros((hidden_size,1))
 
     # Sample 'n' number of characters from model
     for t in xrange(n):
