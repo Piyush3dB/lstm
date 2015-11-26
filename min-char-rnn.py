@@ -27,6 +27,12 @@ class networkGradients:
         self.dby  = np.zeros((input_size  , 1))
 
 
+    def clip(self):
+        for dparam in [self.dWxh, self.dWhh, self.dWhy, self.dbh, self.dby]:
+            np.clip(dparam, -5, 5, out=dparam)
+
+
+
 
 
 class networkWeights:
@@ -51,18 +57,8 @@ class networkWeights:
         np.random.seed(3)
 
         self.weights = self._weights
-        self.grads   = networkGradients(hidden_size, input_size)
         self.mem     = self._mem
 
-        
-
-    def _mem(self):
-        # Memory variables for AdaGrad
-        self.mWxh = np.zeros_like(self.weights.Wxh)
-        self.mWhh = np.zeros_like(self.weights.Whh)
-        self.mWhy = np.zeros_like(self.weights.Why)
-        self.mbh  = np.zeros_like(self.weights.bh)
-        self.mby  = np.zeros_like(self.weights.by)
 
 
 
@@ -75,26 +71,26 @@ class networkWeights:
 
 
 
+    def _mem(self):
+        # Memory variables for AdaGrad
+        self.mWxh = np.zeros_like(self.weights.Wxh)
+        self.mWhh = np.zeros_like(self.weights.Whh)
+        self.mWhy = np.zeros_like(self.weights.Why)
+        self.mbh  = np.zeros_like(self.weights.bh)
+        self.mby  = np.zeros_like(self.weights.by)
+
+
     def weightUpdate(self, grads, learning_rate = 1e-1):
         """
         Weight update using Adagrad 
         """
 
         # perform parameter update with Adagrad
-        for weights, grad, mem in zip([self.weights.Wxh, self.weights.Whh, self.weights.Why, self.weights.bh, self.weights.by], 
+        for w, g, m in zip([self.weights.Wxh, self.weights.Whh, self.weights.Why, self.weights.bh, self.weights.by], 
                                       [ grads.dWxh, grads.dWhh, grads.dWhy, grads.dbh, grads.dby], 
                                       [ self.mem.mWxh  , self.mem.mWhh  , self.mem.mWhy  , self.mem.mbh  , self.mem.mby  ]):
-            mem += grad * grad
-            weights += -learning_rate * grad / np.sqrt(mem + 1e-8) # adagrad update
-        
-        # reset derivatives to zero
-        #Z = np.zeros_like
-        # diffs (derivative of loss function w.r.t. all parameters)
-        #self.grads.dWxh = np.zeros_like(self.weights.Wxh)
-        #self.grads.dWhh = np.zeros_like(self.weights.Whh)
-        #self.grads.dWhy = np.zeros_like(self.weights.Why)
-        #self.grads.dbh  = np.zeros_like(self.weights.bh)
-        #self.grads.dby  = np.zeros_like(self.weights.by)
+            m += g * g
+            w += -learning_rate * g / np.sqrt(m + 1e-8) # adagrad update
 
 
 
@@ -121,9 +117,7 @@ class RnnParam:
         self.bh  = np.zeros((hidden_size , 1)) # hidden bias
         self.by  = np.zeros((input_size  , 1)) # output bias
 
-        # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWxh, self.dWhh, self.dWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
-        self.dbh, self.dby = np.zeros_like(self.bh), np.zeros_like(self.by)
+
 
         # Memory variables for AdaGrad
         self.mWxh, self.mWhh, self.mWhy = np.zeros_like(self.Wxh), np.zeros_like(self.Whh), np.zeros_like(self.Why)
@@ -143,10 +137,8 @@ class RnnParam:
             mem += dparam * dparam
             param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
         
-        # reset derivatives to zero
-        Z = np.zeros_like
-        self.dWxh, self.dWhh, self.dWhy = Z(self.Wxh), Z(self.Whh), Z(self.Why)
-        self.dbh, self.dby = Z(self.bh), Z(self.by)
+
+
 
 
 class CellState:
@@ -281,8 +273,7 @@ class Rnn:
 
         grads   = networkGradients(self.hidden_size, self.input_size)
 
-        dWxh, dWhh, dWhy = grads.dWxh, grads.dWhh, grads.dWhy
-        dbh, dby         = grads.dbh, grads.dby
+
         
         ###
         ###
@@ -330,22 +321,16 @@ class Rnn:
             dh_1 = self.CELLS[t].dh_1
 
             # Accumulators
-            dWxh  += self.CELLS[t].dWxh
-            dWhh  += self.CELLS[t].dWhh
-            dWhy  += self.CELLS[t].dWhy
-            dby   += self.CELLS[t].dby
-            dbh   += self.CELLS[t].dbh
+            grads.dWxh  += self.CELLS[t].dWxh
+            grads.dWhh  += self.CELLS[t].dWhh
+            grads.dWhy  += self.CELLS[t].dWhy
+            grads.dby   += self.CELLS[t].dby
+            grads.dbh   += self.CELLS[t].dbh
 
 
         # clip to mitigate exploding gradients
-        for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-            np.clip(dparam, -5, 5, out=dparam)
 
-        self.dWxh = dWxh
-        self.dWhh = dWhh
-        self.dWhy = dWhy
-        self.dby  = dby 
-        self.dbh  = dbh 
+        grads.clip()
 
 
         #pdb.set_trace()
@@ -520,11 +505,7 @@ learning_rate = 1e-1
 #PARAM = networkWeights(hidden_size, input_size)
 #pdb.set_trace()
 PARAM = RnnParam(hidden_size, input_size)
-Wxh = PARAM.Wxh
-Whh = PARAM.Whh
-Why = PARAM.Why
-bh  = PARAM.bh 
-by  = PARAM.by 
+
 
 
 
@@ -562,11 +543,6 @@ while keepGoing:
     #pdb.set_trace()
     hprev, grads = rnnObj.lossFunModif(inputs, targets, hprev, PARAM)
     loss = rnnObj.loss
-    PARAM.dWxh = grads.dWxh
-    PARAM.dWhh = grads.dWhh
-    PARAM.dWhy = grads.dWhy
-    PARAM.dbh  = grads.dbh
-    PARAM.dby  = grads.dby
 
     #rnnObj.resetGrads()
 
