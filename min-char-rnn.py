@@ -234,7 +234,11 @@ class Rnn:
         self.name   = 'rnn'
 
         # Depth of RNN
-        self.rnn_depth = rnn_depth
+        self.rnn_depth   = rnn_depth
+
+        # Other params
+        self.hidden_size = hidden_size
+        self.input_size  = input_size
 
         # Create RNN network of cells
         self.CELLS = [];
@@ -325,7 +329,68 @@ class Rnn:
         #pdb.set_trace()
         
         #return dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
+
+        self.hprev = hs[len(inputs)-1]
+
         return hs[len(inputs)-1]
+
+
+
+
+def sample2(h, seed_ix, n, hidden_size, input_size, weights):
+    """ 
+    sample a sequence of integers from the model 
+    h is memory state, seed_ix is seed letter for first time step
+    """
+    x = np.zeros((input_size, 1))
+    x[seed_ix] = 1
+    
+    # Outputs
+    ixes = []
+
+    samplerCell = RnnCell(hidden_size, input_size)
+    hprev = np.zeros((hidden_size,1))
+
+
+    for t in xrange(n):
+
+        samplerCell.forwardPass(seed_ix, hprev, weights)
+        hprev = samplerCell.hs
+        p    = samplerCell.ps
+
+        #h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
+        #y = np.dot(Why, h) + by
+        #p = np.exp(y) / np.sum(np.exp(y))
+        ix = np.random.choice(range(input_size), p=p.ravel())
+        
+        x = np.zeros((input_size, 1))
+        x[ix] = 1
+        seed_ix = ix
+        
+        ixes.append(ix)
+    return ixes
+
+
+
+def sample(h, seed_ix, n):
+    """ 
+    sample a sequence of integers from the model 
+    h is memory state, seed_ix is seed letter for first time step
+    """
+    x = np.zeros((input_size, 1))
+    x[seed_ix] = 1
+    ixes = []
+    for t in xrange(n):
+        h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
+        y = np.dot(Why, h) + by
+        p = np.exp(y) / np.sum(np.exp(y))
+        ix = np.random.choice(range(input_size), p=p.ravel())
+        x = np.zeros((input_size, 1))
+        x[ix] = 1
+        ixes.append(ix)
+    return ixes
+
+
 
 
 
@@ -375,23 +440,6 @@ def lossFun(inputs, targets, hprev):
   
   return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs)-1]
 
-def sample(h, seed_ix, n):
-  """ 
-  sample a sequence of integers from the model 
-  h is memory state, seed_ix is seed letter for first time step
-  """
-  x = np.zeros((input_size, 1))
-  x[seed_ix] = 1
-  ixes = []
-  for t in xrange(n):
-    h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
-    y = np.dot(Why, h) + by
-    p = np.exp(y) / np.sum(np.exp(y))
-    ix = np.random.choice(range(input_size), p=p.ravel())
-    x = np.zeros((input_size, 1))
-    x[ix] = 1
-    ixes.append(ix)
-  return ixes
 
 
 # gradient checking
@@ -480,7 +528,8 @@ while keepGoing:
 
     # sample from the model now and then
     if n % 100 == 0:
-        sample_ix = sample(hprev, inputs[0], 200)
+        seedIn = inputs[0]
+        sample_ix = sample2(hprev, inputs[0], 200, hidden_size, input_size, PARAM)
         txt = ''.join(ix_to_char[ix] for ix in sample_ix)
         print '----\n %s \n----' % (txt, )
 
