@@ -206,33 +206,19 @@ class Rnn:
         hprev is Hx1 array of initial hidden state
         returns the loss, gradients on model parameters, and last hidden state
         """
-        hs = {}
-        hs[-1] = np.copy(hprev)
 
         ####
         # forward pass
         for t in xrange(self.rnn_depth):
-
-            #print "FP t = %d" % (t)
-
             self.CELLS[t].forwardPass(inputs[t], hprev, weights)
-
-            #hs[t] = self.CELLS[t].hs
             hprev = self.CELLS[t].hs
-          
 
         ####
         # network loss and derivative computation
         self.loss = 0
-        for t in xrange(self.rnn_depth):
-            # softmax (cross-entropy loss)
-            thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
-            self.loss += thisLoss
-        ####
-
 
         # backward pass: compute gradients going backwards
-        # BPTT
+
 
         # Initialise gradients variables
         grads   = networkGradients(self.hidden_size, self.input_size)
@@ -241,23 +227,23 @@ class Rnn:
 
         dh_1 = np.zeros_like(self.CELLS[0].hs)
         
+        # BPTT
+        
         for t in reversed(xrange(self.rnn_depth)):
 
-            #print " BP t-1 = %d" % (t-1)
+            # softmax (cross-entropy loss)
+            thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
+            self.loss += thisLoss
+
             # Derivative calculation
             dy     = np.copy(self.CELLS[t].ps)
             dy[targets[t]] -= 1 # backprop into y
 
             # Previous hidden state
-            #hs_1 = hs[t-1]
             hs_1 = self.CELLS[t].hs_1
-
-
 
             # Back prop for this cell
             self.CELLS[t].backwardPass(dy, dh_1, hs_1, weights)
-
-
 
             # Hidden delta for this cell
             dh_1 = self.CELLS[t].dh_1
