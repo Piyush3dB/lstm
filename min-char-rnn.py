@@ -11,7 +11,7 @@ import pdb
 
 
 
-class gradients:
+class networkGradients:
     """
     Weights and update function
     """
@@ -51,7 +51,7 @@ class networkWeights:
         np.random.seed(3)
 
         self.weights = self._weights
-        self.grads   = gradients(hidden_size, input_size)
+        self.grads   = networkGradients(hidden_size, input_size)
         self.mem     = self._mem
 
         
@@ -75,26 +75,26 @@ class networkWeights:
 
 
 
-    def weightUpdate(self, learning_rate = 1e-1):
+    def weightUpdate(self, grads, learning_rate = 1e-1):
         """
         Weight update using Adagrad 
         """
 
         # perform parameter update with Adagrad
-        for weights, grads, mem in zip([self.weights.Wxh, self.weights.Whh, self.weights.Why, self.weights.bh, self.weights.by], 
-                                      [ self.grads.dWxh, self.grads.dWhh, self.grads.dWhy, self.grads.dbh, self.grads.dby], 
+        for weights, grad, mem in zip([self.weights.Wxh, self.weights.Whh, self.weights.Why, self.weights.bh, self.weights.by], 
+                                      [ grads.dWxh, grads.dWhh, grads.dWhy, grads.dbh, grads.dby], 
                                       [ self.mem.mWxh  , self.mem.mWhh  , self.mem.mWhy  , self.mem.mbh  , self.mem.mby  ]):
-            mem += grads * grads
-            weights += -learning_rate * grads / np.sqrt(mem + 1e-8) # adagrad update
+            mem += grad * grad
+            weights += -learning_rate * grad / np.sqrt(mem + 1e-8) # adagrad update
         
         # reset derivatives to zero
-        Z = np.zeros_like
+        #Z = np.zeros_like
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.grads.dWxh = np.zeros_like(self.weights.Wxh)
-        self.grads.dWhh = np.zeros_like(self.weights.Whh)
-        self.grads.dWhy = np.zeros_like(self.weights.Why)
-        self.grads.dbh  = np.zeros_like(self.weights.bh)
-        self.grads.dby  = np.zeros_like(self.weights.by)
+        #self.grads.dWxh = np.zeros_like(self.weights.Wxh)
+        #self.grads.dWhh = np.zeros_like(self.weights.Whh)
+        #self.grads.dWhy = np.zeros_like(self.weights.Why)
+        #self.grads.dbh  = np.zeros_like(self.weights.bh)
+        #self.grads.dby  = np.zeros_like(self.weights.by)
 
 
 
@@ -131,14 +131,14 @@ class RnnParam:
 
 
 
-    def weightUpdate(self, learning_rate = 1e-1):
+    def weightUpdate(self, grads, learning_rate = 1e-1):
         """
         Weight update using Adagrad 
         """
 
         # perform parameter update with Adagrad
         for param, dparam, mem in zip([self.Wxh, self.Whh, self.Why, self.bh, self.by], 
-                                      [self.dWxh, self.dWhh, self.dWhy, self.dbh, self.dby], 
+                                      [grads.dWxh, grads.dWhh, grads.dWhy, grads.dbh, grads.dby], 
                                       [self.mWxh, self.mWhh, self.mWhy, self.mbh, self.mby]):
             mem += dparam * dparam
             param += -learning_rate * dparam / np.sqrt(mem + 1e-8) # adagrad update
@@ -279,7 +279,7 @@ class Rnn:
         #pdb.set_trace()
 
 
-        grads   = gradients(self.hidden_size, self.input_size)
+        grads   = networkGradients(self.hidden_size, self.input_size)
 
         dWxh, dWhh, dWhy = grads.dWxh, grads.dWhh, grads.dWhy
         dbh, dby         = grads.dbh, grads.dby
@@ -575,7 +575,7 @@ while keepGoing:
     if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss) # print progress
     
     # Adagrad weight update
-    PARAM.weightUpdate()
+    PARAM.weightUpdate(grads)
 
 
     # move data pointer
