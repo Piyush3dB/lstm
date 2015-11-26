@@ -200,42 +200,31 @@ class Rnn:
 
 
 
-    def lossFunModif(self, inputs, targets, hprev, weights):
+    def FPTT(self, inputs, hprev, weights):
         """
-        inputs,targets are both list of integers.
-        hprev is Hx1 array of initial hidden state
-        returns the loss, gradients on model parameters, and last hidden state
+        Propagate inputs forwards with given weights
         """
 
-        ####
         # forward pass
         for t in xrange(self.rnn_depth):
             self.CELLS[t].forwardPass(inputs[t], hprev, weights)
             hprev = self.CELLS[t].hs
 
-        ####
-        # network loss and derivative computation
+
+    def BPTT(self, targets, weights):
+        """
+        ackpropagation through time
+        """
+
         self.loss = 0
-
-        # backward pass: compute gradients going backwards
-
-
-        # Initialise gradients variables
-        grads   = networkGradients(self.hidden_size, self.input_size)
-       
-
-
-        dh_1 = np.zeros_like(self.CELLS[0].hs)
+        grads     = networkGradients(self.hidden_size, self.input_size)
+        dh_1      = np.zeros_like(self.CELLS[0].hs)
         
         # BPTT
-        
         for t in reversed(xrange(self.rnn_depth)):
 
-            # softmax (cross-entropy loss)
-            thisLoss = -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
-            self.loss += thisLoss
-
-            # Derivative calculation
+            # softmax (cross-entropy loss) and derivative
+            self.loss += -np.log(self.CELLS[t].ps[ targets[t],0 ]) 
             dy     = np.copy(self.CELLS[t].ps)
             dy[targets[t]] -= 1 # backprop into y
 
@@ -248,7 +237,7 @@ class Rnn:
             # Hidden delta for this cell
             dh_1 = self.CELLS[t].dh_1
 
-            # Accumulators
+            # Gradient Accumulations
             grads.dWxh  += self.CELLS[t].dWxh
             grads.dWhh  += self.CELLS[t].dWhh
             grads.dWhy  += self.CELLS[t].dWhy
@@ -261,10 +250,7 @@ class Rnn:
 
         self.hprev = self.CELLS[self.input_size].hs
 
-        #pdb.set_trace()
-
         return self.hprev, grads
-
 
 
 
@@ -279,9 +265,6 @@ def sample(hprev, seed_ix, n, hidden_size, input_size, weights):
 
     # Create instance of RNN cell
     samplerCell = RnnCell(hidden_size, input_size)
-    
-    # Initialise previous hidden state
-    #hprev = np.zeros((hidden_size,1))
 
     # Sample 'n' number of characters from model
     for t in xrange(n):
@@ -348,7 +331,7 @@ if __name__ == "__main__":
     ix_to_char = { i:ch for i,ch in enumerate(chars) }
 
     # Hyperparameters
-    hidden_size   = 100  # size of hidden layer of neurons
+    hidden_size   = 100   # size of hidden layer of neurons
     seq_length    = 25    # number of steps to unroll the RNN for
     learning_rate = 1e-1
 
@@ -386,10 +369,10 @@ if __name__ == "__main__":
             print '----\n %s \n----' % (txt, )
 
         # forward seq_length characters through the net and fetch gradient
-        hprev, grads = rnnObj.lossFunModif(inputs, targets, hprev, weights)
+        rnnObj.FPTT(inputs, hprev, weights)
+        hprev, grads = rnnObj.BPTT(targets, weights)
         loss = rnnObj.loss
 
-        #rnnObj.resetGrads()
 
         # Smooth and log message print
         smooth_loss = smooth_loss * 0.999 + loss * 0.001
