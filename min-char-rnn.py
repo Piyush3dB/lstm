@@ -84,11 +84,6 @@ class CellState:
     """
     def __init__(self, cellWidth, xSize):
         name = 'state'
-        #print "__init__ CellState"
-        # N dimensional vectors
-        #self.h = np.zeros(cellWidth) # h - cell output
-        # Persistent state for derivatives
-        #self.dh = np.zeros_like(self.h)
 
 
 class RnnCell:
@@ -98,10 +93,15 @@ class RnnCell:
     """
 
     def __init__(self, hidden_size, input_size):
-        #print "__init__ LstmCell"
 
         # store reference to parameters and to activations
-        self.state = CellState(hidden_size, input_size)
+        #self.state = CellState(hidden_size, input_size)
+
+        self.hidden_size = hidden_size
+        self.input_size  = input_size 
+
+        self.hs   = 0
+        self.hs_1 = 0
 
     def forwardPass(self, inputs, hprev, weights):
         """
@@ -122,7 +122,7 @@ class RnnCell:
         by = weights.by
 
         # encode in 1-of-k representation
-        xs = np.zeros((input_size,1))
+        xs = np.zeros((self.input_size,1))
         xs[inputs] = 1
 
         # hidden state
@@ -292,40 +292,42 @@ def sample(hprev, seed_ix, n, hidden_size, input_size, weights):
 
 # gradient checking
 def gradCheck(inputs, target, hprev):
-  global Wxh, Whh, Why, bh, by
-  num_checks, delta = 10, 1e-5
-  _, dWxh, dWhh, dWhy, dbh, dby, _ = lossFun(inputs, targets, hprev)
-  for param,dparam,name in zip([Wxh, Whh, Why, bh, by], [dWxh, dWhh, dWhy, dbh, dby], ['Wxh', 'Whh', 'Why', 'bh', 'by']):
-    s0 = dparam.shape
-    s1 = param.shape
-    assert s0 == s1, 'Error dims dont match: %s and %s.' % (`s0`, `s1`)
-    print name
-    for i in xrange(num_checks):
-      ri = int(uniform(0,param.size))
-      # evaluate cost at [x + delta] and [x - delta]
-      old_val = param.flat[ri]
-      param.flat[ri] = old_val + delta
-      cg0, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
-      param.flat[ri] = old_val - delta
-      cg1, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
-      param.flat[ri] = old_val # reset old value for this parameter
-      # fetch both numerical and analytic gradient
-      grad_analytic = dparam.flat[ri]
-      grad_numerical = (cg0 - cg1) / ( 2 * delta )
-      rel_error = abs(grad_analytic - grad_numerical) / abs(grad_numerical + grad_analytic)
-      print '%f, %f => %e ' % (grad_numerical, grad_analytic, rel_error)
-      # rel_error should be on order of 1e-7 or less
+    global Wxh, Whh, Why, bh, by
+    num_checks, delta = 10, 1e-5
+    _, dWxh, dWhh, dWhy, dbh, dby, _ = lossFun(inputs, targets, hprev)
+    for param,dparam,name in zip([Wxh, Whh, Why, bh, by], [dWxh, dWhh, dWhy, dbh, dby], ['Wxh', 'Whh', 'Why', 'bh', 'by']):
+        s0 = dparam.shape
+        s1 = param.shape
+        assert s0 == s1, 'Error dims dont match: %s and %s.' % (`s0`, `s1`)
+        print name
+        for i in xrange(num_checks):
+            ri = int(uniform(0,param.size))
+            # evaluate cost at [x + delta] and [x - delta]
+            old_val = param.flat[ri]
+            param.flat[ri] = old_val + delta
+            cg0, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
+            param.flat[ri] = old_val - delta
+            cg1, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
+            param.flat[ri] = old_val # reset old value for this parameter
+            # fetch both numerical and analytic gradient
+            grad_analytic = dparam.flat[ri]
+            grad_numerical = (cg0 - cg1) / ( 2 * delta )
+            rel_error = abs(grad_analytic - grad_numerical) / abs(grad_numerical + grad_analytic)
+            print '%f, %f => %e ' % (grad_numerical, grad_analytic, rel_error)
+            # rel_error should be on order of 1e-7 or less
 
 
 
 ## Entry point
-if __name__ == "__main__":
+def example_0():
 
     # data I/O
     data  = open('input2.txt', 'r').read() # should be simple plain text file
     chars = list(set(data))
 
-    data_size, input_size = len(data), len(chars)
+    data_size = len(data)
+    input_size = len(chars)
+
     print 'data has %d characters, %d unique.' % (data_size, input_size)
     char_to_ix = { ch:i for i,ch in enumerate(chars) }
     ix_to_char = { i:ch for i,ch in enumerate(chars) }
@@ -392,7 +394,8 @@ if __name__ == "__main__":
         keepGoing = False if (n == 300) else True
 
 
-
+if __name__ == "__main__":
+    example_0()
 
     
 
