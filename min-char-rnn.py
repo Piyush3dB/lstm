@@ -342,32 +342,35 @@ def sample2(h, seed_ix, n, hidden_size, input_size, weights):
     sample a sequence of integers from the model 
     h is memory state, seed_ix is seed letter for first time step
     """
-    x = np.zeros((input_size, 1))
-    x[seed_ix] = 1
     
     # Outputs
     ixes = []
 
+    # Create instance of RNN cell
     samplerCell = RnnCell(hidden_size, input_size)
+    
+    # Initialise previous hidden state
     hprev = np.zeros((hidden_size,1))
 
-
+    # Sample 'n' number of characters from model
     for t in xrange(n):
-
+        
+        # Forward propagate input
         samplerCell.forwardPass(seed_ix, hprev, weights)
         hprev = samplerCell.hs
+        
+        # Cell output distribution
         p    = samplerCell.ps
 
-        #h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
-        #y = np.dot(Why, h) + by
-        #p = np.exp(y) / np.sum(np.exp(y))
+        # Sample an index from this distribution
         ix = np.random.choice(range(input_size), p=p.ravel())
         
-        x = np.zeros((input_size, 1))
-        x[ix] = 1
+        # Set newly sampled index as input for next iteration
         seed_ix = ix
         
+        # Save for caller
         ixes.append(ix)
+    
     return ixes
 
 
