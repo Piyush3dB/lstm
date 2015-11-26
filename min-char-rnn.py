@@ -198,6 +198,10 @@ class Rnn:
 
         self.loss = 0
 
+        # Initialise smoothed loss
+        self.smooth_loss = -np.log(1.0/input_size)*rnn_depth # loss at iteration 0
+
+
 
 
     def FPTT(self, inputs, hprev, weights):
@@ -250,6 +254,8 @@ class Rnn:
 
         self.hprev = self.CELLS[self.input_size].hs
 
+        self.smooth_loss = self.smooth_loss * 0.999 + self.loss * 0.001
+
         return self.hprev, grads
 
 
@@ -289,9 +295,8 @@ def sample(hprev, seed_ix, n, hidden_size, input_size, weights):
 
 
 
-
 # gradient checking
-def gradCheck(inputs, target, hprev):
+def gradCheck_old(inputs, target, hprev):
     global Wxh, Whh, Why, bh, by
     num_checks, delta = 10, 1e-5
     _, dWxh, dWhh, dWhy, dbh, dby, _ = lossFun(inputs, targets, hprev)
@@ -318,6 +323,80 @@ def gradCheck(inputs, target, hprev):
 
 
 
+
+# gradient checking
+def gradCheck(inputs, target, hprev):
+
+
+    # data I/O
+    data  = open('input2.txt', 'r').read() # should be simple plain text file
+    chars = list(set(data))
+
+    data_size = len(data)
+    input_size = len(chars)
+
+    print 'data has %d characters, %d unique.' % (data_size, input_size)
+    char_to_ix = { ch:i for i,ch in enumerate(chars) }
+    ix_to_char = { i:ch for i,ch in enumerate(chars) }
+
+    # Hyperparameters
+    hidden_size   = 100   # size of hidden layer of neurons
+    rnn_depth     = 25    # number of steps to unroll the RNN for
+    learning_rate = 1e-1
+
+    # RNN model parameters
+    weights = networkWeights(hidden_size, input_size)
+
+
+    n, p = 0, 0
+    
+
+
+    keepGoing = True
+
+    # Create instance of RNN
+    rnnObj = Rnn(rnn_depth, hidden_size, input_size)
+
+
+
+
+    # RNN model parameters
+    weights = networkWeights(hidden_size, input_size)
+
+
+    num_checks, delta = 10, 1e-5
+
+    _, dWxh, dWhh, dWhy, dbh, dby, _ = lossFun(inputs, targets, hprev)
+    
+    for param,dparam,name in zip([Wxh, Whh, Why, bh, by], [dWxh, dWhh, dWhy, dbh, dby], ['Wxh', 'Whh', 'Why', 'bh', 'by']):
+        s0 = dparam.shape
+        s1 = param.shape
+        assert s0 == s1, 'Error dims dont match: %s and %s.' % (`s0`, `s1`)
+        print name
+    
+        for i in xrange(num_checks):
+            ri = int(uniform(0,param.size))
+            
+            # evaluate cost at [x + delta] and [x - delta]
+            old_val = param.flat[ri]
+            
+            param.flat[ri] = old_val + delta
+            cg0, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
+            
+            param.flat[ri] = old_val - delta
+            cg1, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
+            
+            param.flat[ri] = old_val # reset old value for this parameter
+            
+            # fetch both numerical and analytic gradient
+            grad_analytic = dparam.flat[ri]
+            grad_numerical = (cg0 - cg1) / ( 2 * delta )
+            rel_error = abs(grad_analytic - grad_numerical) / abs(grad_numerical + grad_analytic)
+            print '%f, %f => %e ' % (grad_numerical, grad_analytic, rel_error)
+            # rel_error should be on order of 1e-7 or less
+
+
+
 ## Entry point
 def example_0():
 
@@ -334,7 +413,7 @@ def example_0():
 
     # Hyperparameters
     hidden_size   = 100   # size of hidden layer of neurons
-    seq_length    = 25    # number of steps to unroll the RNN for
+    rnn_depth     = 25    # number of steps to unroll the RNN for
     learning_rate = 1e-1
 
     # RNN model parameters
@@ -343,53 +422,49 @@ def example_0():
 
     n, p = 0, 0
     
-    # Initialise smoothed loss
-    smooth_loss = -np.log(1.0/input_size)*seq_length # loss at iteration 0
+
 
     keepGoing = True
 
     # Create instance of RNN
-    rnnObj = Rnn(seq_length, hidden_size, input_size)
+    rnnObj = Rnn(rnn_depth, hidden_size, input_size)
 
     # Main loop
     while keepGoing:
 
-        # prepare inputs (we're sweeping from left to right in steps seq_length long)
-        if p+seq_length+1 >= len(data) or n == 0: 
+        # prepare inputs (we're sweeping from left to right in steps rnn_depth long)
+        if p+rnn_depth+1 >= len(data) or n == 0: 
             hprev = np.zeros((hidden_size,1)) # reset RNN memory
             p = 0 # go from start of data
 
         # Prepare inputs and targets
-        inputs  = [char_to_ix[ch] for ch in data[ p  :p+seq_length   ]]
-        targets = [char_to_ix[ch] for ch in data[ p+1:p+seq_length+1 ]]
+        inputs  = [char_to_ix[ch] for ch in data[ p  :p+rnn_depth   ]]
+        targets = [char_to_ix[ch] for ch in data[ p+1:p+rnn_depth+1 ]]
 
         # sample from the model now and then
         if n % 100 == 0:
-            seedIn = inputs[0]
             sample_ix = sample(hprev, inputs[0], 200, hidden_size, input_size, weights)
             txt = ''.join(ix_to_char[ix] for ix in sample_ix)
             print '----\n %s \n----' % (txt, )
 
-        # forward seq_length characters through the net and fetch gradient
+        # forward rnn_depth characters through the net
         rnnObj.FPTT(inputs, hprev, weights)
+
+        # Back propagate and fetch gradients
         hprev, grads = rnnObj.BPTT(targets, weights)
-        loss = rnnObj.loss
 
-
-        # Smooth and log message print
-        smooth_loss = smooth_loss * 0.999 + loss * 0.001
-        if n % 100 == 0: print 'iter %d, loss: %f' % (n, smooth_loss) # print progress
-        
         # Adagrad weight update
         weights.adagradUpdate(grads)
 
-
         # move data pointer
-        p += seq_length
+        p += rnn_depth
+
+        # Smooth loss message print
+        if n % 100 == 0: print 'iter %d, loss: %f' % (n, rnnObj.smooth_loss) # print progress
 
         # iteration counter 
         n += 1
-
+        
         # Terminate
         keepGoing = False if (n == 300) else True
 
