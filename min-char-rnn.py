@@ -26,6 +26,9 @@ class networkGradients:
         self.dbh  = np.zeros((hidden_size , 1))
         self.dby  = np.zeros((input_size  , 1))
 
+        # Create a zipped variable
+        self.zipd = zip([self.dWxh, self.dWhh, self.dWhy, self.dbh, self.dby])
+
 
     def clip(self):
         for dparam in [self.dWxh, self.dWhh, self.dWhy, self.dbh, self.dby]:
@@ -33,27 +36,25 @@ class networkGradients:
 
 
 
-
-
-
-
-
-class networkWeights:
+class rnnWeights:
     """
     Weights and update function
     """
 
-    def __init__(self, hidden_size, input_size):
+    def __init__(self, hidden_size, input_size, rngSeed = 3):
 
         ##
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
-        np.random.seed(3)
+        np.random.seed(rngSeed)
         self.Wxh = np.random.randn(hidden_size , input_size )*0.01 # input to hidden
         self.Whh = np.random.randn(hidden_size , hidden_size)*0.01 # hidden to hidden
         self.Why = np.random.randn(input_size  , hidden_size)*0.01 # hidden to output
         self.bh  = np.zeros((hidden_size , 1)) # hidden bias
         self.by  = np.zeros((input_size  , 1)) # output bias
+
+        # Create a zipped variable
+        self.zipd = zip([self.Wxh, self.Whh, self.Why, self.bh, self.by])
 
 
         # Memory variables for AdaGrad
@@ -88,7 +89,7 @@ class CellState:
 
 class RnnCell:
     """
-    A single LSTM cell composed of State and Weight parameters.
+    A single RNN cell composed of State and Weight parameters.
     Function methods define the forward and backward passes
     """
 
@@ -100,6 +101,7 @@ class RnnCell:
         self.hidden_size = hidden_size
         self.input_size  = input_size 
 
+        # States for forward pass
         self.hs   = 0
         self.hs_1 = 0
 
@@ -107,7 +109,6 @@ class RnnCell:
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
-        Old name : bottom_data_is
         """
         
         DP = np.dot
@@ -140,7 +141,8 @@ class RnnCell:
     
     def backwardPass(self, dy, dh_1, hs_1, weights):
         """
-        Propagate error from output to inpits
+        Propagate error from output to inputs for this cell at ...
+        ... this point in time
         """
 
         DP = np.dot
@@ -241,7 +243,7 @@ class Rnn:
             # Hidden delta for this cell
             dh_1 = self.CELLS[t].dh_1
 
-            # Gradient Accumulations
+            # Gradient accumulations for this time
             grads.dWxh  += self.CELLS[t].dWxh
             grads.dWhh  += self.CELLS[t].dWhh
             grads.dWhy  += self.CELLS[t].dWhy
@@ -251,9 +253,11 @@ class Rnn:
 
         # clip to mitigate exploding gradients
         grads.clip()
-
+        
+        # Update network previous state
         self.hprev = self.CELLS[self.input_size].hs
-
+        
+        # Update smoothed loss value
         self.smooth_loss = self.smooth_loss * 0.999 + self.loss * 0.001
 
         return self.hprev, grads
@@ -270,17 +274,17 @@ def sample(hprev, seed_ix, n, hidden_size, input_size, weights):
     ixes = []
 
     # Create instance of RNN cell
-    samplerCell = RnnCell(hidden_size, input_size)
+    testerCell = RnnCell(hidden_size, input_size)
 
     # Sample 'n' number of characters from model
     for t in xrange(n):
         
         # Forward propagate input
-        samplerCell.forwardPass(seed_ix, hprev, weights)
-        hprev = samplerCell.hs
+        testerCell.forwardPass(seed_ix, hprev, weights)
+        hprev = testerCell.hs
         
         # Cell output distribution
-        p    = samplerCell.ps
+        p    = testerCell.ps
 
         # Sample an index from this distribution
         ix = np.random.choice(range(input_size), p=p.ravel())
@@ -325,49 +329,58 @@ def gradCheck_old(inputs, target, hprev):
 
 
 # gradient checking
-def gradCheck(inputs, target, hprev):
+def gradCheck():
 
 
-    # data I/O
+    # Data I/O
     data  = open('input2.txt', 'r').read() # should be simple plain text file
+
     chars = list(set(data))
-
-    data_size = len(data)
-    input_size = len(chars)
-
-    print 'data has %d characters, %d unique.' % (data_size, input_size)
     char_to_ix = { ch:i for i,ch in enumerate(chars) }
     ix_to_char = { i:ch for i,ch in enumerate(chars) }
+    
+    data_size  = len( data)
+    input_size = len(chars)
+
+    print 'Data has %d characters, %d unique.' % (data_size, input_size)
 
     # Hyperparameters
     hidden_size   = 100   # size of hidden layer of neurons
     rnn_depth     = 25    # number of steps to unroll the RNN for
-    learning_rate = 1e-1
-
-    # RNN model parameters
-    weights = networkWeights(hidden_size, input_size)
 
 
-    n, p = 0, 0
-    
+    # Initialise RNN model weights
+    weights       = rnnWeights(hidden_size, input_size)
+    weights_plus  = rnnWeights(hidden_size, input_size)
+    weights_minus = rnnWeights(hidden_size, input_size)
 
+    # Create RNN objects 
+    rnnObj      = Rnn(rnn_depth, hidden_size, input_size)
+    rnnObjPlus  = Rnn(rnn_depth, hidden_size, input_size)
+    rnnObjMinus = Rnn(rnn_depth, hidden_size, input_size)
 
+    # Main loop
     keepGoing = True
-
-    # Create instance of RNN
-    rnnObj = Rnn(rnn_depth, hidden_size, input_size)
+    n, p = 0, 0
 
 
+    # prepare inputs (we're sweeping from left to right in steps rnn_depth long)
+    hprev = np.zeros((hidden_size,1)) # reset RNN memory
+
+    # Prepare inputs and targets
+    inputs  = [char_to_ix[ch] for ch in data[ p  :p+rnn_depth   ]]
+    targets = [char_to_ix[ch] for ch in data[ p+1:p+rnn_depth+1 ]]
 
 
-    # RNN model parameters
-    weights = networkWeights(hidden_size, input_size)
 
-
+    # CHecking parameters
     num_checks, delta = 10, 1e-5
 
-    _, dWxh, dWhh, dWhy, dbh, dby, _ = lossFun(inputs, targets, hprev)
+    #_, dWxh, dWhh, dWhy, dbh, dby, _ = lossFun(inputs, targets, hprev)
+    rnnObj.FPTT(inputs, hprev, weights)
     
+    pdb.set_trace()
+
     for param,dparam,name in zip([Wxh, Whh, Why, bh, by], [dWxh, dWhh, dWhy, dbh, dby], ['Wxh', 'Whh', 'Why', 'bh', 'by']):
         s0 = dparam.shape
         s1 = param.shape
@@ -375,61 +388,69 @@ def gradCheck(inputs, target, hprev):
         print name
     
         for i in xrange(num_checks):
+
+            # randomly select index
             ri = int(uniform(0,param.size))
             
-            # evaluate cost at [x + delta] and [x - delta]
+            # Save parameter that will be changed
             old_val = param.flat[ri]
-            
+
+            # [x + delta]
             param.flat[ri] = old_val + delta
-            cg0, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
+            lossPlus, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
             
+            # [x - delta]
             param.flat[ri] = old_val - delta
-            cg1, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
+            lossMinus, _, _, _, _, _, _ = lossFun(inputs, targets, hprev)
             
-            param.flat[ri] = old_val # reset old value for this parameter
+            # reset old value for this parameter
+            param.flat[ri] = old_val
             
-            # fetch both numerical and analytic gradient
+            # analytic gradient
             grad_analytic = dparam.flat[ri]
-            grad_numerical = (cg0 - cg1) / ( 2 * delta )
+
+            # numerical gradient
+            grad_numerical = (lossPlus - lossMinus) / ( 2 * delta )
+
             rel_error = abs(grad_analytic - grad_numerical) / abs(grad_numerical + grad_analytic)
             print '%f, %f => %e ' % (grad_numerical, grad_analytic, rel_error)
+            
             # rel_error should be on order of 1e-7 or less
+
+
+# Run RNN model
+#def runRnn():
+
 
 
 
 ## Entry point
 def example_0():
 
-    # data I/O
+    # Data I/O
     data  = open('input2.txt', 'r').read() # should be simple plain text file
+
     chars = list(set(data))
-
-    data_size = len(data)
-    input_size = len(chars)
-
-    print 'data has %d characters, %d unique.' % (data_size, input_size)
     char_to_ix = { ch:i for i,ch in enumerate(chars) }
     ix_to_char = { i:ch for i,ch in enumerate(chars) }
+    
+    data_size  = len( data)
+    input_size = len(chars)
+
+    print 'Data has %d characters, %d unique.' % (data_size, input_size)
 
     # Hyperparameters
     hidden_size   = 100   # size of hidden layer of neurons
     rnn_depth     = 25    # number of steps to unroll the RNN for
-    learning_rate = 1e-1
 
-    # RNN model parameters
-    weights = networkWeights(hidden_size, input_size)
-
-
-    n, p = 0, 0
-    
-
-
-    keepGoing = True
-
-    # Create instance of RNN
-    rnnObj = Rnn(rnn_depth, hidden_size, input_size)
+    # Create RNN objects 
+    weights = rnnWeights(hidden_size, input_size)
+    rnnObj  = Rnn(rnn_depth, hidden_size, input_size)
 
     # Main loop
+    keepGoing = True
+    n, p = 0, 0
+    
     while keepGoing:
 
         # prepare inputs (we're sweeping from left to right in steps rnn_depth long)
@@ -471,6 +492,7 @@ def example_0():
 
 if __name__ == "__main__":
     example_0()
+    #gradCheck()
 
     
 
