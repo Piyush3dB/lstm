@@ -105,7 +105,10 @@ class RnnCell:
         self.hs   = 0
         self.hs_1 = 0
 
-    def forwardPass(self, inputs, hprev, weights):
+        # States for backwardpass
+        self.dhs = 0
+
+    def forwardPass(self, inputs, hs_1, weights):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -113,7 +116,7 @@ class RnnCell:
         
         DP = np.dot
 
-        self.hs_1 = hprev
+        self.hs_1 = hs_1
 
         Wxh = weights.Wxh
         Whh = weights.Whh
@@ -127,7 +130,7 @@ class RnnCell:
         xs[inputs] = 1
 
         # hidden state
-        self.hs = np.tanh(DP(Wxh, xs) + DP(Whh, hprev) + bh)
+        self.hs = np.tanh(DP(Wxh, xs) + DP(Whh, hs_1) + bh)
         
         # unnormalized log probabilities for next chars
         ys = DP(Why, self.hs) + by
@@ -144,18 +147,21 @@ class RnnCell:
         Propagate error from output to inputs for this cell at ...
         ... this point in time
         """
-
+        # Dot product operation
         DP = np.dot
-
+        
+        # Weights
         Wxh = weights.Wxh
         Whh = weights.Whh
         Why = weights.Why
 
         dWhy  = np.dot(dy, self.hs.T)
 
-        dh    = np.dot(Why.T, dy) + dh_1
+        dho   = np.dot(Why.T, dy)
+
+        dh    = dho + dh_1
         
-        dhraw = (1 - self.hs * self.hs) * dh
+        dhraw = (1 - self.hs**2) * dh
 
         dWxh  = DP(dhraw, self.xs.T)
         dWhh  = DP(dhraw, hs_1.T)

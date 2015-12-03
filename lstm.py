@@ -19,6 +19,40 @@ def randArr(a, b, *args):
 
 
 
+
+class networkGradients:
+    """
+    Weights and update function
+    """
+
+
+    def __init__(self, hidden_size, input_size):
+
+
+        # diffs (derivative of loss function w.r.t. all parameters)
+        self.dWg  = np.zeros_like(self.Wg )
+        self.dWi  = np.zeros_like(self.Wi )
+        self.dWf  = np.zeros_like(self.Wf )
+        self.dWo  = np.zeros_like(self.Wo )
+
+        # [100, 1]
+        self.dBg  = np.zeros_like(self.Bg)
+        self.dBi  = np.zeros_like(self.Bi)
+        self.dBf  = np.zeros_like(self.Bf)
+        self.dBo  = np.zeros_like(self.Bo)
+
+
+
+
+    def clip(self):
+        for dparam in [self.dWxh, self.dWhh, self.dWhy, self.dbh, self.dby]:
+            np.clip(dparam, -5, 5, out=dparam)
+
+
+
+
+
+
 class LstmParam:
     """
     All LSTM network parameters
@@ -68,21 +102,10 @@ class LstmParam:
 
         # diffs (derivative of loss function w.r.t. all parameters)
         self.dWg  = np.zeros_like(self.Wg )
-        self.dWgx = np.zeros_like(self.Wgx)
-        self.dWgh = np.zeros_like(self.Wgh)
-        
         self.dWi  = np.zeros_like(self.Wi )
-        self.dWix = np.zeros_like(self.Wix)
-        self.dWih = np.zeros_like(self.Wih)
-        
         self.dWf  = np.zeros_like(self.Wf )
-        self.dWfx = np.zeros_like(self.Wfx)
-        self.dWfh = np.zeros_like(self.Wfh)
-        
         self.dWo  = np.zeros_like(self.Wo )
-        self.dWox = np.zeros_like(self.Wox)
-        self.dWoh = np.zeros_like(self.Woh)
-
+        
         # [100, 1]
         self.dBg  = np.zeros_like(self.Bg)
         self.dBi  = np.zeros_like(self.Bi)
@@ -96,20 +119,9 @@ class LstmParam:
         """
         # [150, 100]
         self.Wg  -= lr * self.dWg
-        self.Wgx -= lr * self.dWgx
-        self.Wgh -= lr * self.dWgh
-        
         self.Wi  -= lr * self.dWi
-        self.Wix -= lr * self.dWix
-        self.Wih -= lr * self.dWih
-        
         self.Wf  -= lr * self.dWf
-        self.Wfx -= lr * self.dWfx
-        self.Wfh -= lr * self.dWfh
-        
         self.Wo  -= lr * self.dWo
-        self.Wox -= lr * self.dWox
-        self.Woh -= lr * self.dWoh
 
         # [100 , 1]
         self.Bg  -= lr * self.dBg
@@ -291,10 +303,10 @@ class LstmCell:
         self.state.ds = ds * self.state.f
 
         # [50 , 1]
-        self.state.dx = dxc[:self.param.xSize]
+        self.state.dx = dxc[  : self.param.xSize ]
 
         # [100  1]
-        self.state.dh = dxc[self.param.xSize:]
+        self.state.dh = dxc[ self.param.xSize :  ]
 
 
 class LstmNetwork():
