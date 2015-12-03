@@ -108,6 +108,7 @@ class RnnCell:
         # States for backwardpass
         self.dhs = 0
 
+
     def forwardPass(self, inputs, hs_1, weights):
         """
         Present data to the bottom of the Cell and compute the values as we
@@ -129,8 +130,78 @@ class RnnCell:
         xs = np.zeros((self.input_size,1))
         xs[inputs] = 1
 
+
         # hidden state
+        #             [100 x 24], [24 x 24]
+        #            [100 x 100], [100 x 100]
         self.hs = np.tanh(DP(Wxh, xs) + DP(Whh, hs_1) + bh)
+
+
+
+
+        
+        ########
+        xc = np.vstack((xs, hs_1))
+        Wh = np.hstack((Wxh, Whh))
+
+
+
+        # hidden state
+        #self.hs = np.tanh(DP(Wh, xc) + bh)
+
+        #pdb.set_trace()
+#        np.testing.assert_array_equal(self.hs, hs)
+
+        #if np.count_nonzero(self.hs - hs) > 0:
+        #    print np.sum(self.hs - hs)
+        #    pdb.set_trace()
+
+
+        ########
+
+        
+        # unnormalized log probabilities for next chars
+        ys = DP(Why, self.hs) + by
+
+        # probabilities for next chars
+        self.ps = np.exp(ys) / np.sum(np.exp(ys))
+
+        self.xs = xs
+
+
+    def forwardPass2(self, inputs, hs_1, weights):
+        """
+        Present data to the bottom of the Cell and compute the values as we
+          forwardPass 'upwards'.
+        """
+        
+        DP = np.dot
+
+        self.hs_1 = hs_1
+
+        Wxh = weights.Wxh
+        Whh = weights.Whh
+        Why = weights.Why
+
+        bh = weights.bh
+        by = weights.by
+
+        # encode in 1-of-k representation
+        xs = np.zeros((self.input_size,1))
+        xs[inputs] = 1
+
+        #pdb.set_trace()
+
+        # COncatenate input and hidden
+        xc = np.vstack((xs, hs_1))
+        Wh = np.hstack((Wxh, Whh))
+
+
+        #pdb.set_trace()
+
+        # hidden state
+        self.hs = np.tanh(DP(Wh, xc) + bh)
+        #pdb.set_trace()
         
         # unnormalized log probabilities for next chars
         ys = DP(Why, self.hs) + by
