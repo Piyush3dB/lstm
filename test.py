@@ -43,7 +43,7 @@ def example_0():
     nCells   = len(outData)
 
     # Initialise LSTM 
-    trainLSTM = LstmNetwork(PARAMS, nCells)
+    trainLSTM = LstmNetwork(PARAMS, nCells, cellWidth, xSize)
 
     # Input data
     inData = np.random.random([nCells, xSize]) # [4, 50]
@@ -73,7 +73,7 @@ def example_0():
         #
 
         # Sample from new model configured with the trained weights
-        testLSTM = LstmNetwork(PARAMS, nCells)
+        testLSTM = LstmNetwork(PARAMS, nCells, cellWidth, xSize)
         testLSTM.fwdProp(inData)
         state = testLSTM.sample()
 

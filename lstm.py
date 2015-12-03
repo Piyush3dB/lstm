@@ -156,7 +156,7 @@ class LstmCell:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS):
+    def __init__(self, PARAMS, cellWidth, xSize):
 
         #print "__init__ LstmCell"
 
@@ -271,7 +271,7 @@ class LstmCell:
 
 
 class LstmNetwork():
-    def __init__(self, PARAMS, nCells):
+    def __init__(self, PARAMS, nCells, cellWidth, xSize):
         """
         Initialise LSTM network 
         """
@@ -286,7 +286,7 @@ class LstmNetwork():
         # Create network of cells
         self.CELLS = []
         for _ in range(self.nCells):
-            newCell  = LstmCell(self.PARAMS)
+            newCell  = LstmCell(self.PARAMS, cellWidth, xSize)
             self.CELLS.append(newCell)
 
         # Current number of used cells in network
