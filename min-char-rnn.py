@@ -234,6 +234,7 @@ class RnnCell:
         
         dhraw = (1 - self.hs**2) * dh
 
+        # Can concatenate these into single statement
         dWxh  = DP(dhraw, self.xs.T)
         dWhh  = DP(dhraw, hs_1.T)
 

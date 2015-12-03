@@ -69,25 +69,6 @@ class LstmParam:
         ##
         # Weight matrices describe the linear fransformation from 
         # input space to output space.
-
-        # Input weights
-        self.Wgx = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Wgh = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-        # Input gate weights
-        self.Wix = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Wih = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-        # Forget gate weights
-        self.Wfx = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Wfh = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-        # Output gate weights
-        self.Wox = randArr(-0.1, 0.1, cellWidth, xSize )
-        self.Woh = randArr(-0.1, 0.1, cellWidth, cellWidth)
-
-
-
         self.Wg  = randArr(-0.1, 0.1, cellWidth, concat_len)
         self.Wi  = randArr(-0.1, 0.1, cellWidth, concat_len)
         self.Wf  = randArr(-0.1, 0.1, cellWidth, concat_len)
@@ -133,20 +114,9 @@ class LstmParam:
 
         # [150, 100]
         self.dWg  = np.zeros_like(self.Wg)
-        self.dWgx = np.zeros_like(self.Wgx)
-        self.dWgh = np.zeros_like(self.Wgh)
-        
         self.dWi  = np.zeros_like(self.Wi)
-        self.dWix = np.zeros_like(self.Wix)
-        self.dWih = np.zeros_like(self.Wih)
-        
         self.dWf  = np.zeros_like(self.Wf)
-        self.dWfx = np.zeros_like(self.Wfx)
-        self.dWfh = np.zeros_like(self.Wfh)
-        
         self.dWo  = np.zeros_like(self.Wo)
-        self.dWox = np.zeros_like(self.Wox)
-        self.dWoh = np.zeros_like(self.Woh)
 
         # [100, 1]
         self.dBg = np.zeros_like(self.Bg)
@@ -226,15 +196,6 @@ class LstmCell:
         Wi = self.param.Wi
         Wf = self.param.Wf
         Wo = self.param.Wo
-
-        Wgx = self.param.Wgx
-        Wgh = self.param.Wgh
-        Wix = self.param.Wix
-        Wih = self.param.Wih
-        Wfx = self.param.Wfx
-        Wfh = self.param.Wfh
-        Wox = self.param.Wox
-        Woh = self.param.Woh
 
         Bg  = self.param.Bg
         Bi  = self.param.Bi
