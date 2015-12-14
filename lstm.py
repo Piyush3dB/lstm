@@ -233,31 +233,35 @@ class LstmCell:
         # diffs w.r.t. vector inside sigma / tanh function
 
         # [100,1] here
-        di_input = (1. - self.state.i) * self.state.i * di 
-        df_input = (1. - self.state.f) * self.state.f * df 
-        do_input = (1. - self.state.o) * self.state.o * do 
-        dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here
+        self.di_input = (1. - self.state.i) * self.state.i * di 
+        self.df_input = (1. - self.state.f) * self.state.f * df 
+        self.do_input = (1. - self.state.o) * self.state.o * do 
+        self.dg_input = (1. - self.state.g ** 2) * dg # Tanh backprop here
 
         # diffs w.r.t. inputs
         # [100,150] here
-        self.param.dWi += np.outer(di_input, self.xc)
-        self.param.dWf += np.outer(df_input, self.xc)
-        self.param.dWo += np.outer(do_input, self.xc)
-        self.param.dWg += np.outer(dg_input, self.xc)
+        self.dWi = np.outer(self.di_input, self.xc)
+        self.dWf = np.outer(self.df_input, self.xc)
+        self.dWo = np.outer(self.do_input, self.xc)
+        self.dWg = np.outer(self.dg_input, self.xc)
+        self.param.dWi += self.dWi
+        self.param.dWf += self.dWf
+        self.param.dWo += self.dWo
+        self.param.dWg += self.dWg
 
         # All [nMemCells ,1] == [100,1] here
-        self.param.dBi += di_input
-        self.param.dBf += df_input       
-        self.param.dBo += do_input
-        self.param.dBg += dg_input       
+        self.param.dBi += self.di_input
+        self.param.dBf += self.df_input       
+        self.param.dBo += self.do_input
+        self.param.dBg += self.dg_input       
 
         # compute bottom diff
         # [150, 1]
         dxc = np.zeros_like(self.xc)
-        dxc += np.dot(self.param.Wi.T, di_input)
-        dxc += np.dot(self.param.Wf.T, df_input)
-        dxc += np.dot(self.param.Wo.T, do_input)
-        dxc += np.dot(self.param.Wg.T, dg_input)
+        dxc += np.dot(self.param.Wi.T, self.di_input)
+        dxc += np.dot(self.param.Wf.T, self.df_input)
+        dxc += np.dot(self.param.Wo.T, self.do_input)
+        dxc += np.dot(self.param.Wg.T, self.dg_input)
 
         # save bottom diffs
         # [100, 1]

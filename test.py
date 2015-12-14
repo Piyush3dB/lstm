@@ -64,6 +64,9 @@ def example_0():
         # Clear inputs to start afresh for next epoch
         trainLSTM.gotoStartCell()
 
+        # Collect the gradients
+        
+
         # Apply weight update
         PARAMS.weightUpdate(lr=0.1)
 
@@ -103,3 +106,4 @@ if __name__ == "__main__":
 # Epoch:  99. loss: 0.0000022563
 
 #pdb.set_trace()
+
