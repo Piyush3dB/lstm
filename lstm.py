@@ -99,7 +99,7 @@ class LstmParam:
         self.dBo  = np.zeros_like(self.Bo)
 
 
-    def weightUpdate(self, lr = 1):
+    def weightUpdate2(self, lr = 1):
         """
         Weight update
         """
@@ -130,7 +130,7 @@ class LstmParam:
         self.dBo = np.zeros_like(self.Bo)
 
 
-    def weightUpdate2(self, grads, lr=1):
+    def weightUpdate(self, grads, lr=1):
         """
         Weight update
         """
@@ -195,7 +195,7 @@ class LstmCell:
 
         # States
 
-    def forwardPass(self, x, s_prev_cell = None, h_prev_cell = None):
+    def forwardPass(self, x, weights, s_prev_cell = None, h_prev_cell = None):
         """
         Present data to the bottom of the Cell and compute the values as we
           forwardPass 'upwards'.
@@ -216,15 +216,15 @@ class LstmCell:
 
         DP = np.dot
 
-        Wg = self.param.Wg
-        Wi = self.param.Wi
-        Wf = self.param.Wf
-        Wo = self.param.Wo
+        Wg = weights.Wg
+        Wi = weights.Wi
+        Wf = weights.Wf
+        Wo = weights.Wo
 
-        Bg  = self.param.Bg
-        Bi  = self.param.Bi
-        Bf  = self.param.Bf
-        Bo  = self.param.Bo
+        Bg  = weights.Bg
+        Bi  = weights.Bi
+        Bf  = weights.Bf
+        Bo  = weights.Bo
 
         #pdb.set_trace()
         self.state.g = np.tanh( DP(Wg,xc) + Bg )  # cell input
@@ -244,7 +244,7 @@ class LstmCell:
         return self.state.h[0]
 
     
-    def backwardPass(self, diff_h, diff_s):
+    def backwardPass(self, diff_h, diff_s, weights):
         # notice that diff_s is carried along the constant error carousel
 
         # All [nMemCells ,1] == [100,1] here
@@ -273,20 +273,20 @@ class LstmCell:
         # compute bottom diff
         # [150, 1]
         dxc  = np.zeros_like(self.xc)
-        dxc += np.dot(self.param.Wi.T, self.di_input)
-        dxc += np.dot(self.param.Wf.T, self.df_input)
-        dxc += np.dot(self.param.Wo.T, self.do_input)
-        dxc += np.dot(self.param.Wg.T, self.dg_input)
+        dxc += np.dot(weights.Wi.T, self.di_input)
+        dxc += np.dot(weights.Wf.T, self.df_input)
+        dxc += np.dot(weights.Wo.T, self.do_input)
+        dxc += np.dot(weights.Wg.T, self.dg_input)
 
         # save bottom diffs
         # [100, 1]
         self.state.ds = ds * self.state.f
 
         # [50 , 1]
-        self.state.dx = dxc[  : self.param.xSize ]
+        self.state.dx = dxc[  : weights.xSize ]
 
         # [100  1]
-        self.state.dh = dxc[ self.param.xSize :  ]
+        self.state.dh = dxc[ weights.xSize :  ]
 
 
 class LstmNetwork():
@@ -343,7 +343,7 @@ class LstmNetwork():
         # Forward propagate in time
         for idx in range(self.nCells):
 
-            self.CELLS[idx].forwardPass(x[idx], s_prev, h_prev)
+            self.CELLS[idx].forwardPass(x[idx], self.PARAMS, s_prev, h_prev)
 
             s_prev = self.CELLS[idx].state.s
             h_prev = self.CELLS[idx].state.h
@@ -391,7 +391,7 @@ class LstmNetwork():
             diff_s = ds_prev
 
             # Backprop for this cell
-            self.CELLS[idx].backwardPass(diff_h, diff_s)
+            self.CELLS[idx].backwardPass(diff_h, diff_s, self.PARAMS)
 
             # Gradients Accumulation
             grads.dWi += self.CELLS[idx].dWi

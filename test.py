@@ -68,7 +68,7 @@ def example_0():
 
 
         # Apply weight update
-        PARAMS.weightUpdate2(grads, lr=0.1)
+        PARAMS.weightUpdate(grads, lr=0.1)
         #PARAMS.weightUpdate(lr=0.1)
 
 
