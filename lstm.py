@@ -26,20 +26,25 @@ class networkGradients:
     """
 
 
-    def __init__(self, hidden_size, input_size):
+    def __init__(self, cellWidth, xSize):
+
+        concat_len  = xSize + cellWidth
+
+        W  = randArr(-0.1, 0.1, cellWidth, concat_len)
+        B  = randArr(-0.1, 0.1, cellWidth)
 
 
         # diffs (derivative of loss function w.r.t. all parameters)
-        self.dWg  = np.zeros_like(self.Wg )
-        self.dWi  = np.zeros_like(self.Wi )
-        self.dWf  = np.zeros_like(self.Wf )
-        self.dWo  = np.zeros_like(self.Wo )
+        self.dWg  = np.zeros_like( W )
+        self.dWi  = np.zeros_like( W )
+        self.dWf  = np.zeros_like( W )
+        self.dWo  = np.zeros_like( W )
 
         # [100, 1]
-        self.dBg  = np.zeros_like(self.Bg)
-        self.dBi  = np.zeros_like(self.Bi)
-        self.dBf  = np.zeros_like(self.Bf)
-        self.dBo  = np.zeros_like(self.Bo)
+        self.dBg  = np.zeros_like( B )
+        self.dBi  = np.zeros_like( B )
+        self.dBf  = np.zeros_like( B )
+        self.dBo  = np.zeros_like( B )
 
 
 
@@ -123,6 +128,38 @@ class LstmParam:
         self.dBi = np.zeros_like(self.Bi)
         self.dBf = np.zeros_like(self.Bf)
         self.dBo = np.zeros_like(self.Bo)
+
+
+    def weightUpdate_Grads(self, grads, lr=1):
+        """
+        Weight update
+        """
+        # [150, 100]
+        self.Wg  -= lr * grads.dWg
+        self.Wi  -= lr * grads.dWi
+        self.Wf  -= lr * grads.dWf
+        self.Wo  -= lr * grads.dWo
+
+        # [100 , 1]
+        self.Bg  -= lr * grads.dBg
+        self.Bi  -= lr * grads.dBi
+        self.Bf  -= lr * grads.dBf
+        self.Bo  -= lr * grads.dBo
+        
+        # reset derivatives to zero
+
+        # [150, 100]
+        self.dWg  = np.zeros_like(self.Wg)
+        self.dWi  = np.zeros_like(self.Wi)
+        self.dWf  = np.zeros_like(self.Wf)
+        self.dWo  = np.zeros_like(self.Wo)
+
+        # [100, 1]
+        self.dBg = np.zeros_like(self.Bg)
+        self.dBi = np.zeros_like(self.Bi)
+        self.dBf = np.zeros_like(self.Bf)
+        self.dBo = np.zeros_like(self.Bo)
+
 
 
 
@@ -244,20 +281,11 @@ class LstmCell:
         self.dWf = np.outer(self.df_input, self.xc)
         self.dWo = np.outer(self.do_input, self.xc)
         self.dWg = np.outer(self.dg_input, self.xc)
-        self.param.dWi += self.dWi
-        self.param.dWf += self.dWf
-        self.param.dWo += self.dWo
-        self.param.dWg += self.dWg
 
-        # All [nMemCells ,1] == [100,1] here
-        self.param.dBi += self.di_input
-        self.param.dBf += self.df_input       
-        self.param.dBo += self.do_input
-        self.param.dBg += self.dg_input       
 
         # compute bottom diff
         # [150, 1]
-        dxc = np.zeros_like(self.xc)
+        dxc  = np.zeros_like(self.xc)
         dxc += np.dot(self.param.Wi.T, self.di_input)
         dxc += np.dot(self.param.Wf.T, self.df_input)
         dxc += np.dot(self.param.Wo.T, self.do_input)
@@ -372,6 +400,18 @@ class LstmNetwork():
 
             # Backprop for this cell
             self.CELLS[idx].backwardPass(diff_h, diff_s)
+
+            # Gradients Accumulation
+            self.PARAMS.dWi += self.CELLS[idx].dWi
+            self.PARAMS.dWf += self.CELLS[idx].dWf
+            self.PARAMS.dWo += self.CELLS[idx].dWo
+            self.PARAMS.dWg += self.CELLS[idx].dWg
+
+            self.PARAMS.dBi += self.CELLS[idx].di_input
+            self.PARAMS.dBf += self.CELLS[idx].df_input       
+            self.PARAMS.dBo += self.CELLS[idx].do_input
+            self.PARAMS.dBg += self.CELLS[idx].dg_input   
+
 
             # Save current derivatives for next cell
             dh_prev = self.CELLS[idx].state.dh
