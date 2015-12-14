@@ -59,16 +59,17 @@ def example_0():
         trainLSTM.fwdProp(inData)
 
         # Evaluate loss function and back propagate through time
-        loss = trainLSTM.bptt(outData, ToyLossLayer)
+        loss, grads = trainLSTM.bptt(outData, ToyLossLayer)
 
         # Clear inputs to start afresh for next epoch
         trainLSTM.gotoStartCell()
 
         # Collect the gradients
-        
+
 
         # Apply weight update
-        PARAMS.weightUpdate(lr=0.1)
+        PARAMS.weightUpdate2(grads, lr=0.1)
+        #PARAMS.weightUpdate(lr=0.1)
 
 
         #

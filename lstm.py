@@ -130,7 +130,7 @@ class LstmParam:
         self.dBo = np.zeros_like(self.Bo)
 
 
-    def weightUpdate_Grads(self, grads, lr=1):
+    def weightUpdate2(self, grads, lr=1):
         """
         Weight update
         """
@@ -146,19 +146,6 @@ class LstmParam:
         self.Bf  -= lr * grads.dBf
         self.Bo  -= lr * grads.dBo
         
-        # reset derivatives to zero
-
-        # [150, 100]
-        self.dWg  = np.zeros_like(self.Wg)
-        self.dWi  = np.zeros_like(self.Wi)
-        self.dWf  = np.zeros_like(self.Wf)
-        self.dWo  = np.zeros_like(self.Wo)
-
-        # [100, 1]
-        self.dBg = np.zeros_like(self.Bg)
-        self.dBi = np.zeros_like(self.Bi)
-        self.dBf = np.zeros_like(self.Bf)
-        self.dBo = np.zeros_like(self.Bo)
 
 
 
@@ -312,6 +299,9 @@ class LstmNetwork():
         # Total number of unfolded cells in network
         self.nCells = nCells
 
+        self.cellWidth = cellWidth
+        self.xSize     = xSize
+
         # Init parameters structure
         self.PARAMS = PARAMS
 
@@ -381,6 +371,8 @@ class LstmNetwork():
         dh_prev   = 0
         ds_prev   = 0
 
+        grads = networkGradients(self.cellWidth, self.xSize)
+
         # Back propagate gradients towards oldest cell
         for idx in reversed(range(self.nCells)):
 
@@ -402,19 +394,19 @@ class LstmNetwork():
             self.CELLS[idx].backwardPass(diff_h, diff_s)
 
             # Gradients Accumulation
-            self.PARAMS.dWi += self.CELLS[idx].dWi
-            self.PARAMS.dWf += self.CELLS[idx].dWf
-            self.PARAMS.dWo += self.CELLS[idx].dWo
-            self.PARAMS.dWg += self.CELLS[idx].dWg
+            grads.dWi += self.CELLS[idx].dWi
+            grads.dWf += self.CELLS[idx].dWf
+            grads.dWo += self.CELLS[idx].dWo
+            grads.dWg += self.CELLS[idx].dWg
 
-            self.PARAMS.dBi += self.CELLS[idx].di_input
-            self.PARAMS.dBf += self.CELLS[idx].df_input       
-            self.PARAMS.dBo += self.CELLS[idx].do_input
-            self.PARAMS.dBg += self.CELLS[idx].dg_input   
+            grads.dBi += self.CELLS[idx].di_input
+            grads.dBf += self.CELLS[idx].df_input       
+            grads.dBo += self.CELLS[idx].do_input
+            grads.dBg += self.CELLS[idx].dg_input   
 
 
             # Save current derivatives for next cell
             dh_prev = self.CELLS[idx].state.dh
             ds_prev = self.CELLS[idx].state.ds
 
-        return totalLoss
+        return totalLoss, grads
