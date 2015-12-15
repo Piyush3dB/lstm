@@ -252,7 +252,7 @@ class LstmCell:
         self.state.ds = ds * self.state.f
 
         # [50 , 1]
-        self.state.dx = dxc[  : weights.xSize ]
+        #self.state.dx = dxc[  : weights.xSize ]
 
         # [100  1]
         self.state.dh = dxc[ weights.xSize :  ]
