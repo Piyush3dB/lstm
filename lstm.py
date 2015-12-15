@@ -331,7 +331,7 @@ class LstmNetwork():
         """
         self.nUsedCells = 0
 
-    def fwdProp(self, x):
+    def fwdProp(self, x, weights):
         """
         Propagate inputs through unfolded network
         """
@@ -343,7 +343,7 @@ class LstmNetwork():
         # Forward propagate in time
         for idx in range(self.nCells):
 
-            self.CELLS[idx].forwardPass(x[idx], self.PARAMS, s_prev, h_prev)
+            self.CELLS[idx].forwardPass(x[idx], weights, s_prev, h_prev)
 
             s_prev = self.CELLS[idx].state.s
             h_prev = self.CELLS[idx].state.h
@@ -353,7 +353,7 @@ class LstmNetwork():
 
 
 
-    def bptt(self, targetData, LOSS_LAYER):
+    def bptt(self, targetData, LOSS_LAYER, weights):
         """
         Back propagation through time through unfolded network.
         Updates derivatives by setting target sequence 
@@ -391,7 +391,7 @@ class LstmNetwork():
             diff_s = ds_prev
 
             # Backprop for this cell
-            self.CELLS[idx].backwardPass(diff_h, diff_s, self.PARAMS)
+            self.CELLS[idx].backwardPass(diff_h, diff_s, weights)
 
             # Gradients Accumulation
             grads.dWi += self.CELLS[idx].dWi

@@ -56,10 +56,10 @@ def example_0():
         #
 
         # Input data and propagate forwards through time
-        trainLSTM.fwdProp(inData)
+        trainLSTM.fwdProp(inData, PARAMS)
 
         # Evaluate loss function and back propagate through time
-        loss, grads = trainLSTM.bptt(outData, ToyLossLayer)
+        loss, grads = trainLSTM.bptt(outData, ToyLossLayer, PARAMS)
 
         # Clear inputs to start afresh for next epoch
         trainLSTM.gotoStartCell()
@@ -78,7 +78,7 @@ def example_0():
 
         # Sample from new model configured with the trained weights
         testLSTM = LstmNetwork(PARAMS, nCells, cellWidth, xSize)
-        testLSTM.fwdProp(inData)
+        testLSTM.fwdProp(inData, PARAMS)
         state = testLSTM.sample()
 
         #pdb.set_trace()
