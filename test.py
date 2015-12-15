@@ -1,6 +1,7 @@
 import numpy as np
 import pdb   as pdb
-from lstm import LstmParam, LstmNetwork
+#import lstm
+from lstm import LstmWeights, LstmNetwork
 
 class ToyLossLayer:
     """
@@ -34,7 +35,7 @@ def example_0():
 
     ## Initialise parameters
     # Containg weights and derivatives of loss function wrt weights)
-    PARAMS = LstmParam(cellWidth, xSize)
+    weights = LstmWeights(cellWidth, xSize)
     
     ## Prepare target outputs
     outData  = [0.5, 0.2, 0.1, 0.5]
@@ -43,7 +44,7 @@ def example_0():
     nCells   = len(outData)
 
     # Initialise LSTM 
-    trainLSTM = LstmNetwork(PARAMS, nCells, cellWidth, xSize)
+    trainLSTM = LstmNetwork(weights, nCells, cellWidth, xSize)
 
     # Input data
     inData = np.random.random([nCells, xSize]) # [4, 50]
@@ -56,10 +57,10 @@ def example_0():
         #
 
         # Input data and propagate forwards through time
-        trainLSTM.fwdProp(inData, PARAMS)
+        trainLSTM.fwdProp(inData, weights)
 
         # Evaluate loss function and back propagate through time
-        loss, grads = trainLSTM.bptt(outData, ToyLossLayer, PARAMS)
+        loss, grads = trainLSTM.bptt(outData, ToyLossLayer, weights)
 
         # Clear inputs to start afresh for next epoch
         trainLSTM.gotoStartCell()
@@ -68,8 +69,8 @@ def example_0():
 
 
         # Apply weight update
-        PARAMS.weightUpdate(grads, lr=0.1)
-        #PARAMS.weightUpdate(lr=0.1)
+        weights.update(grads, lr=0.1)
+        #weights.weightUpdate(lr=0.1)
 
 
         #
@@ -77,8 +78,8 @@ def example_0():
         #
 
         # Sample from new model configured with the trained weights
-        testLSTM = LstmNetwork(PARAMS, nCells, cellWidth, xSize)
-        testLSTM.fwdProp(inData, PARAMS)
+        testLSTM = LstmNetwork(weights, nCells, cellWidth, xSize)
+        testLSTM.fwdProp(inData, weights)
         state = testLSTM.sample()
 
         #pdb.set_trace()

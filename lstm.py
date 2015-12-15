@@ -58,7 +58,7 @@ class networkGradients:
 
 
 
-class LstmParam:
+class LstmWeights:
     """
     All LSTM network parameters
     """
@@ -67,9 +67,9 @@ class LstmParam:
 
         #print "__init__ LstmParam"
 
-        self.xSize  = xSize
+        self.xSize     = xSize
         self.cellWidth = cellWidth
-        concat_len  = xSize + cellWidth
+        concat_len     = xSize + cellWidth
 
         ##
         # Weight matrices describe the linear fransformation from 
@@ -99,38 +99,7 @@ class LstmParam:
         self.dBo  = np.zeros_like(self.Bo)
 
 
-    def weightUpdate2(self, lr = 1):
-        """
-        Weight update
-        """
-        # [150, 100]
-        self.Wg  -= lr * self.dWg
-        self.Wi  -= lr * self.dWi
-        self.Wf  -= lr * self.dWf
-        self.Wo  -= lr * self.dWo
-
-        # [100 , 1]
-        self.Bg  -= lr * self.dBg
-        self.Bi  -= lr * self.dBi
-        self.Bf  -= lr * self.dBf
-        self.Bo  -= lr * self.dBo
-        
-        # reset derivatives to zero
-
-        # [150, 100]
-        self.dWg  = np.zeros_like(self.Wg)
-        self.dWi  = np.zeros_like(self.Wi)
-        self.dWf  = np.zeros_like(self.Wf)
-        self.dWo  = np.zeros_like(self.Wo)
-
-        # [100, 1]
-        self.dBg = np.zeros_like(self.Bg)
-        self.dBi = np.zeros_like(self.Bi)
-        self.dBf = np.zeros_like(self.Bf)
-        self.dBo = np.zeros_like(self.Bo)
-
-
-    def weightUpdate(self, grads, lr=1):
+    def update(self, grads, lr=1):
         """
         Weight update
         """
