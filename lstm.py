@@ -180,13 +180,13 @@ class LstmCell:
     Function methods define the forward and backward passes
     """
 
-    def __init__(self, PARAMS, cellWidth, xSize):
+    def __init__(self, cellWidth, xSize):
 
         #print "__init__ LstmCell"
 
         # store reference to parameters and to activations
-        self.state = CellState(PARAMS.cellWidth, PARAMS.xSize)
-        self.param = PARAMS
+        self.state = CellState(cellWidth, xSize)
+        #self.param = PARAMS
 
         # non-recurrent input to node
         #self.x  = None
@@ -302,13 +302,10 @@ class LstmNetwork():
         self.cellWidth = cellWidth
         self.xSize     = xSize
 
-        # Init parameters structure
-        self.PARAMS = PARAMS
-
         # Create network of cells
         self.CELLS = []
         for _ in range(self.nCells):
-            newCell  = LstmCell(self.PARAMS, cellWidth, xSize)
+            newCell  = LstmCell(cellWidth, xSize)
             self.CELLS.append(newCell)
 
         # Current number of used cells in network
@@ -337,8 +334,8 @@ class LstmNetwork():
         """
 
         # Initialise previous states for first cell
-        s_prev = np.zeros(self.PARAMS.cellWidth)
-        h_prev = np.zeros(self.PARAMS.cellWidth)
+        s_prev = np.zeros(self.cellWidth)
+        h_prev = np.zeros(self.cellWidth)
 
         # Forward propagate in time
         for idx in range(self.nCells):
@@ -363,8 +360,8 @@ class LstmNetwork():
         assert len(targetData) == self.nUsedCells
 
         # Initialise derivative arrays
-        diff_s = np.zeros(self.PARAMS.cellWidth)
-        diff_h = np.zeros(self.PARAMS.cellWidth)
+        diff_s = np.zeros(self.cellWidth)
+        diff_h = np.zeros(self.cellWidth)
 
         # Local variables
         totalLoss = 0
