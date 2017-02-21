@@ -1,15 +1,29 @@
 import numpy as np
 import pdb   as pdb
+pds = pdb.set_trace
 #import lstm
 from lstm import LstmWeights, LstmNetwork
+
+
+"""
+H = 100 (Hidden state size == cell output size)
+V = 50  (Input vocab size)
+t = 4   (Sequence Length aka bucket size)
+
+- Input 4 randomised sequences.
+- Output hidden vector, of which the first element is relevant
+
+
+"""
+
 
 class ToyLossLayer:
     """
     Computes square loss with first element of hidden layer array.
     """
     @classmethod
-    def loss(self, pred, label, idx=0):
-        return (pred[idx] - label) ** 2
+    def loss(self, pred, label):
+        return (pred - label) ** 2
 
     """
     Computes derivative of loss function
@@ -38,7 +52,7 @@ def example_0():
     weights = LstmWeights(cellWidth, xSize)
     
     ## Prepare target outputs
-    outData  = [0.5, 0.2, 0.1, 0.5]
+    outData  = [0.1, 0.2, 0.3, 0.4]
     
     # number of unfolded cells
     nCells   = len(outData)
@@ -48,6 +62,7 @@ def example_0():
 
     # Input data
     inData = np.random.random([nCells, xSize]) # [4, 50]
+    #inData = np.ones([nCells, xSize]) # [4, 50]
     
     # Train and sample at the same time
     for epoch in range(nEpochs):
@@ -56,10 +71,12 @@ def example_0():
         # Train model
         #
 
-        # Input data and propagate forwards through time
+        # Input data and propagate forwards through time for 4 time steps
         trainLSTM.fwdProp(inData, weights)
 
-        # Evaluate loss function and back propagate through time
+        #pdb.set_trace()
+
+        # Evaluate loss function and back propagate through time for 4 time steps
         loss, grads = trainLSTM.bptt(outData, ToyLossLayer, weights)
 
         # Clear inputs to start afresh for next epoch
@@ -101,11 +118,12 @@ if __name__ == "__main__":
 
 ## Expected final output if still working correctly
 ##
-#   Input 50 rand.  Target = 0.500. Output = 0.501. Delta = -0.001
-#   Input 50 rand.  Target = 0.200. Output = 0.200. Delta = 0.000
-#   Input 50 rand.  Target = 0.100. Output = 0.101. Delta = -0.001
-#   Input 50 rand.  Target = 0.500. Output = 0.499. Delta = 0.001
-# Epoch:  99. loss: 0.0000022563
+#  Input 50 rand.  Target = 0.100. Output = 0.106. Delta = -0.006
+#  Input 50 rand.  Target = 0.200. Output = 0.196. Delta = 0.004
+#  Input 50 rand.  Target = 0.300. Output = 0.300. Delta = -0.000
+#  Input 50 rand.  Target = 0.400. Output = 0.400. Delta = -0.000
+#Epoch:  99. loss: 0.0000608719
+
 
 #pdb.set_trace()
 

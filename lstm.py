@@ -2,6 +2,7 @@ import random
 import numpy as np
 import math
 import pdb as pdb
+pds = pdb.set_trace
 
 # See arXiv:1506.00019 for notation
 # Check out http://kbullaughey.github.io/lstm-play/lstm/
@@ -204,6 +205,8 @@ class LstmCell:
         self.state.s = self.state.g * self.state.i + s_prev_cell * self.state.f # cell state
         self.state.h = self.state.s * self.state.o                         # cell output
 
+        #pds()
+
 
     def sample(self):
         """
@@ -343,10 +346,13 @@ class LstmNetwork():
         for idx in reversed(range(self.nCells)):
 
             # Get target and prediction
-            pred, label = self.CELLS[idx].state.h, targetData[idx]
+            pred  = self.CELLS[idx].state.h
+            label = targetData[idx]
+
+            #pds()
 
             # Compute loss function and accumulate
-            cellLoss   = LOSS_LAYER.loss( pred, label )
+            cellLoss   = LOSS_LAYER.loss( pred[0], label )
             totalLoss += cellLoss
 
             # Derivative of loss function and accumulate with previous derivative
